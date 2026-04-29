@@ -48,7 +48,7 @@ export default function LoginPage() {
               <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" />
             </svg>
           </div>
-          <span className="text-xl font-bold tracking-tight">NexusAI</span>
+          <span className="text-xl font-bold tracking-tight">PrimeInvest</span>
         </div>
         <Link href="/register" className="px-6 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white transition-colors text-sm font-medium">
           Register

@@ -1,34 +1,164 @@
+"use client";
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function DashboardPage() {
+  const [timeLeft, setTimeLeft] = useState('00 : 00 : 00');
+  const [isInvested, setIsInvested] = useState(false);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const investTime = localStorage.getItem('investmentTime');
+      if (!investTime) {
+        setIsInvested(false);
+        return '00 : 00 : 00';
+      }
+
+      setIsInvested(true);
+      const startTime = parseInt(investTime, 10);
+      // 24 hours in milliseconds
+      const cycleDuration = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const elapsed = now - startTime;
+      
+      if (elapsed >= cycleDuration) {
+        // Cycle finished
+        return '00 : 00 : 00';
+      }
+
+      const remaining = cycleDuration - elapsed;
+      const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((remaining / 1000 / 60) % 60);
+      const seconds = Math.floor((remaining / 1000) % 60);
+
+      return `${hours.toString().padStart(2, '0')} : ${minutes.toString().padStart(2, '0')} : ${seconds.toString().padStart(2, '0')}`;
+    };
+
+    // Initial calculation
+    setTimeLeft(calculateTimeLeft());
+
+    // Update every second
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-[#1a233a] to-[#121624] border border-white/10 rounded-2xl p-6 shadow-lg">
-          <p className="text-gray-400 text-sm font-medium mb-1 uppercase tracking-wider">Account Balance</p>
-          <h4 className="text-3xl font-bold font-mono text-white">$0.00</h4>
+    <div className="space-y-4 pb-4">
+      {/* Live Earnings Section */}
+      <div className="bg-gradient-to-b from-[#161c2d] to-[#121624] border border-white/5 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <svg className="w-5 h-5 text-[#00e699]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+          <span className="text-[#00e699] font-medium">Live Earnings</span>
         </div>
-        <div className="bg-gradient-to-br from-[#1a233a] to-[#121624] border border-white/10 rounded-2xl p-6 shadow-lg">
-          <p className="text-gray-400 text-sm font-medium mb-1 uppercase tracking-wider">Active Investments</p>
-          <h4 className="text-3xl font-bold font-mono text-white">$0.00</h4>
+        <p className="text-gray-400 text-xs mb-1">Current Balance</p>
+        <h2 className="text-4xl font-mono font-bold text-[#8c62ff] mb-4">$0.00000000</h2>
+        
+        <div className={`inline-flex items-center gap-3 rounded-full px-4 py-2 border border-white/5 mb-6 ${isInvested ? 'bg-[#1a2b4c]/80 border-[#3ba2ff]/30 shadow-[0_0_10px_rgba(59,162,255,0.2)]' : 'bg-[#1a2035]'}`}>
+          <svg className={`w-4 h-4 ${isInvested ? 'text-[#00e699] animate-pulse' : 'text-[#3ba2ff]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          <span className="text-xs text-gray-400">Next cycle:</span>
+          <span className={`text-sm font-bold font-mono ${isInvested ? 'text-[#00e699]' : 'text-white'}`}>{timeLeft}</span>
         </div>
-        <div className="bg-gradient-to-br from-[#1a233a] to-[#121624] border border-white/10 rounded-2xl p-6 shadow-lg">
-          <p className="text-gray-400 text-sm font-medium mb-1 uppercase tracking-wider">Total Earnings</p>
-          <h4 className="text-3xl font-bold font-mono text-white">$0.00</h4>
+
+        <Link href="/deposit" className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#8c62ff] to-[#00e699] hover:opacity-90 text-white font-bold py-4 rounded-xl shadow-lg transition-all">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Start Earning Now
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+        </Link>
+      </div>
+
+      {/* Referral Link */}
+      <div className="bg-[#161c2d] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#5b32a8]/30 flex items-center justify-center text-[#8c62ff]">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white mb-0.5">Your Referral Link</h3>
+            <p className="text-[10px] text-gray-500 font-mono break-all line-clamp-1 max-w-[150px] sm:max-w-[200px]">https://primeinvest.com/register?ref=di1t5u6qhc</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="p-2 bg-[#1e2740] rounded-lg text-[#3ba2ff] hover:bg-[#1e2740]/80">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          </button>
+          <button className="p-2 bg-[#00e699]/10 rounded-lg text-[#00e699] hover:bg-[#00e699]/20">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#121624] border border-white/10 rounded-2xl p-6">
-          <h3 className="text-lg font-bold mb-4">Recent Transactions</h3>
-          <div className="h-48 flex items-center justify-center text-gray-500 text-sm">
-            No transactions found
+      {/* Deposit & Earnings Split */}
+      <div className="bg-[#161c2d] border border-white/5 rounded-2xl overflow-hidden flex divide-x divide-white/5 text-sm">
+        <div className="flex-1 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Deposit
           </div>
+          <span className="font-bold text-white font-mono">$0.00</span>
         </div>
-        <div className="bg-[#121624] border border-white/10 rounded-2xl p-6">
-          <h3 className="text-lg font-bold mb-4">Active GPU Plans</h3>
-          <div className="h-48 flex items-center justify-center text-gray-500 text-sm">
-            No active plans
+        <div className="flex-1 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-gray-400">
+            <svg className="w-4 h-4 text-[#00e699]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            Earnings
           </div>
+          <span className="font-bold text-white font-mono">$0.00</span>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="grid grid-cols-3 gap-3">
+        <Link href="/deposit" className="bg-[#00bfff] rounded-2xl p-4 flex flex-col items-center justify-center text-center hover:opacity-90 transition-opacity">
+          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+          </div>
+          <span className="font-bold text-white text-sm mb-0.5">Deposit</span>
+          <span className="text-white/70 text-[10px]">Add funds</span>
+        </Link>
+        <Link href="/plans" className="bg-[#9b51e0] rounded-2xl p-4 flex flex-col items-center justify-center text-center hover:opacity-90 transition-opacity">
+          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+          </div>
+          <span className="font-bold text-white text-sm mb-0.5">Invest</span>
+          <span className="text-white/70 text-[10px]">AI Plans</span>
+        </Link>
+        <Link href="/withdrawal" className="bg-[#00e699] rounded-2xl p-4 flex flex-col items-center justify-center text-center hover:opacity-90 transition-opacity">
+          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          </div>
+          <span className="font-bold text-white text-sm mb-0.5">Withdraw</span>
+          <span className="text-white/70 text-[10px]">Cash out</span>
+        </Link>
+      </div>
+
+      {/* Quick Access */}
+      <div className="bg-[#121624] rounded-2xl p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <svg className="w-5 h-5 text-[#3ba2ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          <h3 className="font-bold">Quick Access</h3>
+        </div>
+        
+        <div className="flex flex-col">
+          {[
+            { name: 'Investments', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', path: '/invests' },
+            { name: 'Referrals', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', path: '/referrals' },
+            { name: 'Transactions', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', path: '/transactions' },
+            { name: 'Levels', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', path: '/levels' },
+            { name: 'News', icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15', path: '/news' },
+            { name: 'Support', icon: 'M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z', path: '/support' },
+          ].map((item, idx) => (
+            <Link key={idx} href={item.path} className="flex items-center justify-between py-4 border-b border-white/5 last:border-0 hover:bg-white/5 rounded-lg px-2 -mx-2 transition-colors">
+              <div className="flex items-center gap-3 text-gray-300">
+                <div className="w-8 h-8 rounded-lg bg-[#1a2035] flex items-center justify-center border border-white/5">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon}></path></svg>
+                </div>
+                <span className="font-medium text-sm">{item.name}</span>
+              </div>
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
