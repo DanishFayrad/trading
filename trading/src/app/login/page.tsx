@@ -37,113 +37,63 @@ export default function LoginPage() {
     }
   };
 
+  const fieldClass =
+    'block w-full input-light rounded-xl px-4 py-3.5 text-[15px] font-medium';
+
   return (
-    <div className="min-h-screen bg-[#0b101e] text-white flex flex-col font-sans relative overflow-hidden" 
-         style={{ backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)', backgroundSize: '50px 50px' }}>
-      
+    <div className="min-h-screen text-[#1d1d1f] flex flex-col font-sans">
       {/* Navbar */}
-      <nav className="w-full flex justify-between items-center p-6 z-10 relative">
-        <div className="flex items-center gap-2">
-          {/* Logo Icon */}
-          <div className="w-8 h-8 flex items-center justify-center text-blue-500">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
-              <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" />
-            </svg>
+      <nav className="w-full flex justify-between items-center px-5 sm:px-8 h-16 sticky top-0 z-30 bg-[#fbfbfd]/80 backdrop-blur-xl border-b border-[#e6e6eb]">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#5b5bd6] flex items-center justify-center">
+            <img src="/logo.png" alt="Prime Invest" className="w-5 h-5 object-contain" />
           </div>
-          <span className="text-xl font-bold tracking-tight">PrimeInvest</span>
-        </div>
-        <Link href="/register" className="px-6 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white transition-colors text-sm font-medium">
-          Register
+          <span className="text-[15px] font-semibold tracking-tight">Prime Invest</span>
+        </Link>
+        <Link href="/register" className="text-[13px] font-medium text-[#5b5bd6] hover:text-[#4f46e5] transition-colors">
+          Create account&nbsp;&rsaquo;
         </Link>
       </nav>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 z-10 w-full relative">
-        
-        {/* Glow Effects */}
-        <div className="absolute top-[20%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-        {/* Form Card */}
-        <div className="w-full max-w-[460px] bg-[#121624] border border-white/10 rounded-2xl p-8 shadow-2xl relative z-10 mb-6">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[420px] animate-rise">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">Welcome Back</h1>
+            <h1 className="text-[30px] font-semibold tracking-[-0.02em]">Welcome back</h1>
+            <p className="mt-1.5 text-[15px] text-[#6e6e73]">Sign in to your account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Email Address</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <input 
-                  type="email" 
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="block w-full pl-10 bg-[#1a1f33] border border-transparent rounded-lg px-4 py-3.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                  placeholder="you@example.com"
-                  required
-                />
+          <div className="glass rounded-3xl p-7 sm:p-8">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-[13px] font-medium text-[#515159] mb-2">Email</label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} className={fieldClass} placeholder="name@example.com" required />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[13px] font-medium text-[#515159]">Password</label>
+                  <Link href="/forgot-password" className="text-[12px] font-medium text-[#5b5bd6] hover:text-[#4f46e5]">Forgot?</Link>
                 </div>
-                <input 
-                  type="password" 
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="block w-full pl-10 bg-[#1a1f33] border border-transparent rounded-lg px-4 py-3.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                  placeholder="Enter your password"
-                  required
-                />
+                <input type="password" name="password" value={formData.password} onChange={handleChange} className={fieldClass} placeholder="••••••••••••" required />
               </div>
-            </div>
 
-            <div className="flex justify-end pt-1">
-              <Link href="#" className="text-[#3ba2ff] hover:text-[#5cb3ff] text-sm font-medium transition-colors">
-                Forgot password?
-              </Link>
-            </div>
-
-            <div className="pt-2">
-              <button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-[#3ba2ff] to-[#8d49f7] hover:from-[#328ddf] hover:to-[#763dcf] text-white font-medium py-3.5 px-4 rounded-lg transition-all duration-300 shadow-[0_0_15px_rgba(141,73,247,0.3)] flex items-center justify-center gap-2"
-              >
-                Login
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+              <button type="submit" className="btn-primary w-full py-3.5 rounded-xl text-[15px] font-medium inline-flex items-center justify-center gap-2 group">
+                Sign in
+                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
 
-          <div className="mt-8 text-center border-t border-white/5 pt-6">
-            <p className="text-gray-400 text-sm">
-              Don't have an account?{' '}
-              <Link href="/register" className="text-[#3ba2ff] hover:text-[#5cb3ff] font-medium transition-colors">
-                Create Account
-              </Link>
-            </p>
+          <p className="mt-6 text-center text-[14px] text-[#6e6e73]">
+            New to Prime Invest?{' '}
+            <Link href="/register" className="font-medium text-[#5b5bd6] hover:text-[#4f46e5]">Create an account</Link>
+          </p>
+
+          <div className="mt-8 flex items-center justify-center gap-2 text-[12px] text-[#aeaeb5]">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            256-bit AES encrypted &middot; Secure session
           </div>
         </div>
-
-        {/* Footer Security Badge */}
-        <div className="flex items-center gap-2 text-gray-500 text-xs">
-          <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-          Secure encrypted connection
-        </div>
-
       </div>
     </div>
   );
