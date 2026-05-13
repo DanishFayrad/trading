@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Prime Invest",
-  description: "Secure AI Computing & GPU Infrastructure Investment Platform",
+  title: "theprimeinvestpro",
+  description: "AI-powered investing — earn automated daily returns from high-performance GPU datacenters.",
   icons: {
     icon: '/logo.png',
     shortcut: '/logo.png',

@@ -20,15 +20,7 @@ function DepositContent() {
   }, [searchParams]);
 
   const paymentMethods = [
-    { id: 'easypaisa', name: 'EasyPaisa', subtitle: 'Deposit: PKR/USD', color: 'text-[#15a86b]', bg: 'bg-emerald-50', border: 'border-emerald-100', icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1' },
     { id: 'jazzcash', name: 'Jazzcash', subtitle: 'Deposit: PKR/USD', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { id: 'bank', name: 'Bank Transfer', subtitle: 'Direct Bank Deposit', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
-  ];
-
-  const cryptoMethods = [
-    { id: 'solana', name: 'Solana', subtitle: 'SOL, USDC, USDT', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-    { id: 'tron', name: 'Tron', subtitle: 'TRX, USDT, USDD', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z' },
-    { id: 'bnb', name: 'BNB Chain', subtitle: 'BNB, USDC, USDT', color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
   ];
 
   const [modal, setModal] = useState<{ show: boolean, title: string, message: string, type: 'success' | 'error' }>({
@@ -98,7 +90,7 @@ function DepositContent() {
   };
 
   if (selectedMethod) {
-    const methodInfo = [...paymentMethods, ...cryptoMethods].find(m => m.id === selectedMethod);
+    const methodInfo = paymentMethods.find(m => m.id === selectedMethod);
     return (
       <div className="space-y-6 pb-4 relative">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#5b5bd6]/10 blob -z-10 pointer-events-none"></div>
@@ -130,9 +122,9 @@ function DepositContent() {
                 <div className="bg-white border border-[#e6e6eb] rounded-xl p-6 mb-6 flex justify-between items-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full" style={{ background: 'linear-gradient(#5b5bd6, #7c5cdb)' }}></div>
                     <div className="flex-1 text-center">
-                        <p className="text-[12px] text-[#86868b] mb-1">Till ID / address</p>
-                        <h2 className="text-[20px] font-semibold gradient-text tracking-wide font-mono">982891804</h2>
-                        <p className="text-[12px] text-[#86868b] mt-1">Happy Mini Mart</p>
+                        <p className="text-[12px] text-[#86868b] mb-1">Jazz Cash number</p>
+                        <h2 className="text-[22px] font-semibold gradient-text tracking-wide font-mono">03205805955</h2>
+                        <p className="text-[12px] text-[#86868b] mt-1">Haleema Bibi</p>
                     </div>
                 </div>
 
@@ -262,32 +254,6 @@ function DepositContent() {
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-center mb-3">
-              <div className="h-px bg-[#e6e6eb] flex-1"></div>
-              <p className="text-[12px] sm:text-[13px] text-[#86868b] px-4">Cryptocurrency</p>
-              <div className="h-px bg-[#e6e6eb] flex-1"></div>
-            </div>
-            <div className="space-y-3">
-              {cryptoMethods.map(method => (
-                <button
-                  key={method.id}
-                  onClick={() => setSelectedMethod(method.id)}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl glass-soft glass-hover text-left`}
-                >
-                  <div>
-                    <h3 className="text-[14px] font-semibold tracking-tight text-[#1d1d1f]">{method.name}</h3>
-                    <p className={`text-[12px] ${method.color} font-medium`}>{method.subtitle}</p>
-                  </div>
-                  <div className={`w-9 h-9 rounded-full ${method.bg} flex items-center justify-center border ${method.border}`}>
-                    <svg className={`w-4 h-4 ${method.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={method.icon}></path>
-                    </svg>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
         </div>
       </div>

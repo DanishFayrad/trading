@@ -3,7 +3,7 @@ import React from 'react';
 
 const newsItems = [
     {
-        title: "Prime Invest Node V3.0 Deployed",
+        title: "theprimeinvestpro Node V3.0 Deployed",
         date: "2026-04-30",
         category: "Network",
         content: "Our latest mining nodes are now active, providing 15% more efficiency across all titan deployments.",

@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <img src="/logo.png" alt="Logo" className="w-5 h-5 object-contain" />
           </div>
           <span className="text-[15px] font-semibold tracking-tight">
-            Prime <span className={accentText}>{isAdmin ? 'Admin' : 'Invest'}</span>
+            {isAdmin ? <>theprime<span className={accentText}>admin</span>pro</> : <>theprime<span className={accentText}>invest</span>pro</>}
           </span>
         </div>
         <div className="flex items-center gap-2">

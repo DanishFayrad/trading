@@ -7,9 +7,9 @@ export default function ForgotPassword() {
       <nav className="w-full flex justify-between items-center px-5 sm:px-8 h-16 sticky top-0 z-30 bg-[#fbfbfd]/80 backdrop-blur-xl border-b border-[#e6e6eb]">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-[#5b5bd6] flex items-center justify-center">
-            <img src="/logo.png" alt="Prime Invest" className="w-5 h-5 object-contain" />
+            <img src="/logo.png" alt="theprimeinvestpro" className="w-5 h-5 object-contain" />
           </div>
-          <span className="text-[15px] font-semibold tracking-tight">Prime Invest</span>
+          <span className="text-[15px] font-semibold tracking-tight">theprime<span className="gradient-text">invest</span>pro</span>
         </Link>
         <Link href="/login" className="text-[13px] font-medium text-[#5b5bd6] hover:text-[#4f46e5] transition-colors">
           Log in&nbsp;&rsaquo;
