@@ -29,6 +29,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; type: 'deposits' | 'withdrawals' } | null>(null);
   const [modal, setModal] = useState<{ show: boolean, title: string, message: string, type: 'success' | 'error' }>({
     show: false, title: '', message: '', type: 'success'
   });
@@ -93,6 +94,36 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDelete = async (id: string, type: 'deposits' | 'withdrawals') => {
+    setActionLoading(`${id}-delete`);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${apiUrl}/api/${type}/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setModal({
+          show: true,
+          title: 'Deleted',
+          message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been deleted.`,
+          type: 'success'
+        });
+        fetchData();
+      } else {
+        setModal({ show: true, title: 'Failed', message: data.message || 'Could not delete.', type: 'error' });
+      }
+    } catch (error) {
+      console.error(error);
+      setModal({ show: true, title: 'Error', message: 'Something went wrong.', type: 'error' });
+    } finally {
+      setActionLoading(null);
+      setDeleteConfirm(null);
+    }
+  };
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center p-20 text-[#86868b] gap-4">
       <div className="w-12 h-12 border-4 border-[#d8d8df] border-t-[#5b5bd6] rounded-full animate-spin"></div>
@@ -152,12 +183,18 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                         </div>
-                        {deposit.status === 'pending' && (
-                            <div className="flex gap-3">
-                                <button onClick={() => handleStatusUpdate(deposit._id, 'deposits', 'approved')} className="flex-1 font-medium text-[14px] py-3 rounded-xl text-white" style={{ background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' }}>{actionLoading === `${deposit._id}-approved` ? '...' : 'Approve'}</button>
-                                <button onClick={() => handleStatusUpdate(deposit._id, 'deposits', 'rejected')} className="flex-1 bg-red-50 text-red-600 border border-red-200 font-medium text-[14px] py-3 rounded-xl">{actionLoading === `${deposit._id}-rejected` ? '...' : 'Reject'}</button>
-                            </div>
-                        )}
+                        <div className="flex gap-3">
+                            {deposit.status === 'pending' && (
+                                <>
+                                    <button onClick={() => handleStatusUpdate(deposit._id, 'deposits', 'approved')} className="flex-1 font-medium text-[14px] py-3 rounded-xl text-white" style={{ background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' }}>{actionLoading === `${deposit._id}-approved` ? '...' : 'Approve'}</button>
+                                    <button onClick={() => handleStatusUpdate(deposit._id, 'deposits', 'rejected')} className="flex-1 bg-red-50 text-red-600 border border-red-200 font-medium text-[14px] py-3 rounded-xl">{actionLoading === `${deposit._id}-rejected` ? '...' : 'Reject'}</button>
+                                </>
+                            )}
+                            <button onClick={() => setDeleteConfirm({ id: deposit._id, type: 'deposits' })} title="Delete" className={`${deposit.status === 'pending' ? 'w-12' : 'w-full'} flex items-center justify-center gap-2 bg-[#f5f5f7] hover:bg-red-50 text-[#86868b] hover:text-red-600 border border-[#e6e6eb] hover:border-red-200 font-medium text-[14px] py-3 rounded-xl transition-colors`}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></svg>
+                                {deposit.status !== 'pending' && <span>Delete</span>}
+                            </button>
+                        </div>
                     </div>
                 ))
             )
@@ -190,12 +227,18 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                         </div>
-                        {withdrawal.status === 'pending' && (
-                            <div className="flex gap-3">
-                                <button onClick={() => handleStatusUpdate(withdrawal._id, 'withdrawals', 'approved')} className="flex-1 text-white font-medium text-[14px] py-3 rounded-xl" style={{ background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' }}>{actionLoading === `${withdrawal._id}-approved` ? '...' : 'Approve'}</button>
-                                <button onClick={() => handleStatusUpdate(withdrawal._id, 'withdrawals', 'rejected')} className="flex-1 bg-red-50 text-red-600 border border-red-200 font-medium text-[14px] py-3 rounded-xl">{actionLoading === `${withdrawal._id}-rejected` ? '...' : 'Reject'}</button>
-                            </div>
-                        )}
+                        <div className="flex gap-3">
+                            {withdrawal.status === 'pending' && (
+                                <>
+                                    <button onClick={() => handleStatusUpdate(withdrawal._id, 'withdrawals', 'approved')} className="flex-1 text-white font-medium text-[14px] py-3 rounded-xl" style={{ background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' }}>{actionLoading === `${withdrawal._id}-approved` ? '...' : 'Approve'}</button>
+                                    <button onClick={() => handleStatusUpdate(withdrawal._id, 'withdrawals', 'rejected')} className="flex-1 bg-red-50 text-red-600 border border-red-200 font-medium text-[14px] py-3 rounded-xl">{actionLoading === `${withdrawal._id}-rejected` ? '...' : 'Reject'}</button>
+                                </>
+                            )}
+                            <button onClick={() => setDeleteConfirm({ id: withdrawal._id, type: 'withdrawals' })} title="Delete" className={`${withdrawal.status === 'pending' ? 'w-12' : 'w-full'} flex items-center justify-center gap-2 bg-[#f5f5f7] hover:bg-red-50 text-[#86868b] hover:text-red-600 border border-[#e6e6eb] hover:border-red-200 font-medium text-[14px] py-3 rounded-xl transition-colors`}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></svg>
+                                {withdrawal.status !== 'pending' && <span>Delete</span>}
+                            </button>
+                        </div>
                     </div>
                 ))
             )
@@ -203,6 +246,23 @@ export default function AdminDashboard() {
       </div>
 
       {/* Modals remain same as before for visual consistency */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/30 backdrop-blur-sm">
+            <div className="glass rounded-3xl p-8 max-w-sm w-full text-center">
+                <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center bg-red-50 text-red-600">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></svg>
+                </div>
+                <h3 className="text-[18px] font-semibold tracking-tight text-[#1d1d1f] mb-2">Delete this {deleteConfirm.type === 'deposits' ? 'deposit' : 'withdrawal'}?</h3>
+                <p className="text-[#86868b] text-[13px] mb-8">This will permanently remove the record. This action cannot be undone.</p>
+                <div className="flex gap-3">
+                    <button onClick={() => setDeleteConfirm(null)} className="btn-ghost flex-1 py-3.5 rounded-xl font-medium text-[15px]">Cancel</button>
+                    <button onClick={() => handleDelete(deleteConfirm.id, deleteConfirm.type)} disabled={actionLoading === `${deleteConfirm.id}-delete`} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3.5 rounded-xl font-medium text-[15px] disabled:opacity-60 transition-colors">
+                        {actionLoading === `${deleteConfirm.id}-delete` ? 'Deleting...' : 'Delete'}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
       {selectedImage && (
         <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setSelectedImage(null)}>
             <img src={selectedImage} alt="Full Screenshot" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl border border-white/10" />

@@ -85,7 +85,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-6 text-center text-[14px] text-[#6e6e73]">
-            New to theprimeinvestpro?{' '}
+            New to primeinvestpro?{' '}
             <Link href="/register" className="font-medium text-[#5b5bd6] hover:text-[#4f46e5]">Create an account</Link>
           </p>
 

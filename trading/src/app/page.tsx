@@ -33,7 +33,7 @@ export default function Home() {
           <div className="w-8 h-8 rounded-lg bg-[#5b5bd6] flex items-center justify-center">
             <img src="/logo.png" alt="theprimeinvestpro" className="w-5 h-5 object-contain" />
           </div>
-          <span className="text-[15px] font-semibold tracking-tight">theprime<span className="gradient-text">invest</span>pro</span>
+          <span className="text-[15px] font-semibold tracking-tight">Prime<span className="gradient-text">invest</span>pro</span>
         </div>
         <Link href="/login" className="text-[13px] font-medium text-[#5b5bd6] hover:text-[#4f46e5] transition-colors">
           Log in&nbsp;&rsaquo;

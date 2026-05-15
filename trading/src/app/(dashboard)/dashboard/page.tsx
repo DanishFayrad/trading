@@ -14,7 +14,6 @@ export default function DashboardPage() {
   const [activeDeposits, setActiveDeposits] = useState<any[]>([]);
 
   const fetchUserStats = async () => {
-    console.log("Fetching user stats...");
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
@@ -22,7 +21,6 @@ export default function DashboardPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      console.log("Stats received:", data);
 
       if (data.success) {
         const approvedDeposits = data.data.filter((d: any) => d.status === 'approved');
@@ -30,51 +28,38 @@ export default function DashboardPage() {
         setTotalInvested(total);
 
         if (total > 0) {
-            setMiningActive(true);
-            setActiveDeposits(approvedDeposits);
-            return;
+          setMiningActive(true);
+          setActiveDeposits(approvedDeposits);
         }
       }
-
-      // Fallback if no approved deposits or error
-      startDemoMining();
-
     } catch (error) {
       console.error("Fetch error:", error);
-      startDemoMining();
     }
-  };
-
-  const startDemoMining = () => {
-    console.log("Starting demo mining...");
-    setMiningActive(true);
-    setTotalInvested(100);
-    const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    setActiveDeposits([{ amount: 100, updatedAt: fiveMinsAgo }]);
   };
 
   useEffect(() => {
     if (!miningActive) return;
 
-    // First, calculate the initial starting balance from past time
+    // $2.5 earned per $1 invested every 24 hours
+    const RATE_PER_DOLLAR_PER_SECOND = 2.5 / 86400;
+
     let initialBalance = 0;
-    const now = new Date().getTime();
+    const now = Date.now();
     activeDeposits.forEach(d => {
-        const amount = Number(d.amount) || 100;
-        const approvedAt = new Date(d.updatedAt || new Date()).getTime();
+        const amount = Number(d.amount) || 0;
+        const approvedAt = new Date(d.updatedAt || now).getTime();
         const elapsedSeconds = Math.max(0, (now - approvedAt) / 1000);
-        initialBalance += amount * 0.0001 * elapsedSeconds;
+        initialBalance += amount * RATE_PER_DOLLAR_PER_SECOND * elapsedSeconds;
     });
     setBalance(initialBalance);
 
-    // Then, start a direct incrementing interval so it ALWAYS moves
-    const interval = setInterval(() => {
-        setBalance(prev => {
-            const ratePerDollar = 0.000000001; // Ultra slow for maximum realism
-            const increment = (totalInvested || 100) * ratePerDollar;
-            return prev + increment;
-        });
+    // Smooth balance tick — 10 ticks/sec totals one second's accrual
+    const smoothInterval = setInterval(() => {
+        setBalance(prev => prev + totalInvested * RATE_PER_DOLLAR_PER_SECOND / 10);
+    }, 100);
 
+    // Separate 1-second tick just for the duration HH:MM:SS display
+    const durationInterval = setInterval(() => {
         setMiningDuration(prev => {
             const parts = prev.split(':').map(Number);
             let [h, m, s] = parts;
@@ -83,20 +68,11 @@ export default function DashboardPage() {
             if (m >= 60) { m = 0; h++; }
             return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         });
-    }, 1000); // Update every second
-
-    // Sub-second smoother for visual effect
-    const smoothInterval = setInterval(() => {
-        setBalance(prev => {
-            const ratePerDollar = 0.000000001;
-            const incrementPerTenth = (totalInvested || 100) * ratePerDollar / 10;
-            return prev + incrementPerTenth;
-        });
-    }, 100);
+    }, 1000);
 
     return () => {
-        clearInterval(interval);
         clearInterval(smoothInterval);
+        clearInterval(durationInterval);
     };
   }, [miningActive, activeDeposits, totalInvested]);
 

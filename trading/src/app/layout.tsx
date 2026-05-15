@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "theprimeinvestpro",
+  title: "primeinvestpro",
   description: "AI-powered investing — earn automated daily returns from high-performance GPU datacenters.",
   icons: {
     icon: '/logo.png',
