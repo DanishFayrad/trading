@@ -16,6 +16,7 @@ function RegisterForm() {
     phone: ''
   });
   const [toast, setToast] = useState<{ show: boolean, message: string, type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const ref = searchParams.get('ref');
@@ -40,6 +41,7 @@ function RegisterForm() {
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || nameParts[0] || 'User';
 
+    setIsLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const response = await fetch(`${apiUrl}/api/auth/register`, {
@@ -70,6 +72,8 @@ function RegisterForm() {
       console.error(error);
       setToast({ show: true, message: 'An error occurred during registration.', type: 'error' });
       setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -160,9 +164,18 @@ function RegisterForm() {
                 {step > 1 && (
                   <button type="button" onClick={prevStep} className="btn-ghost w-1/3 py-3.5 rounded-xl text-[15px] font-medium">Back</button>
                 )}
-                <button type="submit" className={`btn-primary py-3.5 rounded-xl text-[15px] font-medium inline-flex items-center justify-center gap-2 group ${step === 1 ? 'w-full' : 'flex-1'}`}>
-                  {step < 3 ? 'Continue' : 'Create account'}
-                  <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                <button type="submit" disabled={isLoading} className={`btn-primary py-3.5 rounded-xl text-[15px] font-medium inline-flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed ${step === 1 ? 'w-full' : 'flex-1'}`}>
+                  {isLoading ? (
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <>
+                      {step < 3 ? 'Continue' : 'Create account'}
+                      <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -182,7 +195,7 @@ function RegisterForm() {
 
       {/* Toast Notification */}
       {toast.show && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-rise">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-rise">
             <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-lg border ${toast.type === 'success' ? 'bg-[#f0fdf4] border-[#bbf7d0] text-[#15a86b]' : 'bg-[#fef2f2] border-[#fecaca] text-[#ef4444]'}`}>
                 {toast.type === 'success' ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
