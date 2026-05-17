@@ -31,7 +31,7 @@ export default function Home() {
       <nav className="w-full flex justify-between items-center px-5 sm:px-8 h-16 sticky top-0 z-30 bg-[#fbfbfd]/80 backdrop-blur-xl border-b border-[#e6e6eb]">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-[#5b5bd6] flex items-center justify-center">
-            <img src="/logo.png" alt="theprimeinvestpro" className="w-5 h-5 object-contain" />
+            <img src="/logo.png" alt="primeinvestpro" className="w-5 h-5 object-contain" />
           </div>
           <span className="text-[15px] font-semibold tracking-tight">Prime<span className="gradient-text">invest</span>pro</span>
         </div>

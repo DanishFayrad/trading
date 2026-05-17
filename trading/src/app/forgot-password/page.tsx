@@ -9,7 +9,7 @@ export default function ForgotPassword() {
           <div className="w-8 h-8 rounded-lg bg-[#5b5bd6] flex items-center justify-center">
             <img src="/logo.png" alt="primeinvestpro" className="w-5 h-5 object-contain" />
           </div>
-          <span className="text-[15px] font-semibold tracking-tight">theprime<span className="gradient-text">invest</span>pro</span>
+          <span className="text-[15px] font-semibold tracking-tight">prime<span className="gradient-text">invest</span>pro</span>
         </Link>
         <Link href="/login" className="text-[13px] font-medium text-[#5b5bd6] hover:text-[#4f46e5] transition-colors">
           Log in&nbsp;&rsaquo;

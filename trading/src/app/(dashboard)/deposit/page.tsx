@@ -130,7 +130,10 @@ function DepositContent() {
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">Deposit amount ($)</label>
+                        <label className="flex justify-between text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">
+                            <span>Deposit amount (Rs)</span>
+                            {amount && <span>~ $ {(Number(amount) / 278).toFixed(2)}</span>}
+                        </label>
                         <input
                             type="number"
                             value={amount}

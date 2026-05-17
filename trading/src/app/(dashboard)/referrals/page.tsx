@@ -13,6 +13,7 @@ export default function ReferralsPage() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [referralCode, setReferralCode] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -41,11 +42,13 @@ export default function ReferralsPage() {
     fetchReferrals();
   }, []);
 
-  const referralLink = typeof window !== 'undefined' ? `${window.location.origin}/register?ref=${referralCode}` : '';
+  const baseUrl = process.env.NEXT_PUBLIC_LIVE_URL || 'https://invest-app-ab4f3840a6a6.herokuapp.com';
+  const referralLink = referralCode !== 'NOT_FOUND' && referralCode !== '' ? `${baseUrl}/register?ref=${referralCode}` : 'Loading...';
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(referralLink);
-    alert('Referral link copied to clipboard!');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -69,13 +72,44 @@ export default function ReferralsPage() {
                   <div className="bg-[#f5f5f7] border border-[#e6e6eb] rounded-xl px-5 py-4 text-sm font-mono text-[#5b5bd6] break-all">
                       {referralLink}
                   </div>
-                  <button
-                    onClick={copyToClipboard}
-                    className="btn-primary w-full py-3.5 font-medium text-[15px] rounded-xl flex items-center justify-center gap-2.5"
-                  >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                      Copy link
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                        onClick={copyToClipboard}
+                        className={`flex-1 py-3.5 font-medium text-[15px] rounded-xl flex items-center justify-center gap-2.5 transition-all ${copied ? 'bg-emerald-50 text-[#15a86b] border border-emerald-100' : 'btn-primary'}`}
+                    >
+                        {copied ? (
+                            <>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                Copied!
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                Copy link
+                            </>
+                        )}
+                    </button>
+                    <button
+                        onClick={async () => {
+                            if (navigator.share) {
+                                try {
+                                    await navigator.share({
+                                        title: 'Join me on Invest App',
+                                        text: 'Use my referral link to join!',
+                                        url: referralLink,
+                                    });
+                                } catch (err) {
+                                    console.error('Error sharing:', err);
+                                }
+                            } else {
+                                copyToClipboard();
+                            }
+                        }}
+                        className="w-[52px] flex-shrink-0 bg-[#f5f5f7] hover:bg-[#eef0ff] text-[#86868b] hover:text-[#5b5bd6] rounded-xl flex items-center justify-center transition-all border border-[#e6e6eb]"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                    </button>
+                  </div>
               </div>
           </div>
         </div>

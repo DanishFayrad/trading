@@ -79,7 +79,8 @@ export default function TransactionsPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[14px] font-semibold text-[#1d1d1f] font-mono">${deposit.amount}</p>
+                <p className="text-[14px] font-semibold text-[#1d1d1f] font-mono">Rs {deposit.amount.toLocaleString()}</p>
+                <p className="text-[11px] font-mono text-[#86868b]">${(deposit.amount / 278).toFixed(2)}</p>
                 <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium capitalize ${
                     deposit.status === 'approved' ? 'bg-emerald-50 text-[#15a86b]' :
                     deposit.status === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'

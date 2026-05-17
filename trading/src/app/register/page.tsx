@@ -15,6 +15,7 @@ function RegisterForm() {
     confirmPassword: '',
     phone: ''
   });
+  const [toast, setToast] = useState<{ show: boolean, message: string, type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
     const ref = searchParams.get('ref');
@@ -57,14 +58,18 @@ function RegisterForm() {
       if (data.success) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        alert('Registration successful!');
-        window.location.href = '/dashboard';
+        setToast({ show: true, message: 'User registered successfully!', type: 'success' });
+        setTimeout(() => {
+            window.location.href = '/dashboard';
+        }, 1500);
       } else {
-        alert(data.message || 'Registration failed');
+        setToast({ show: true, message: data.message || 'Registration failed', type: 'error' });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
       }
     } catch (error) {
       console.error(error);
-      alert('An error occurred during registration.');
+      setToast({ show: true, message: 'An error occurred during registration.', type: 'error' });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     }
   };
 
@@ -174,6 +179,20 @@ function RegisterForm() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-rise">
+            <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-lg border ${toast.type === 'success' ? 'bg-[#f0fdf4] border-[#bbf7d0] text-[#15a86b]' : 'bg-[#fef2f2] border-[#fecaca] text-[#ef4444]'}`}>
+                {toast.type === 'success' ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                )}
+                <span className="text-[14px] font-medium tracking-tight">{toast.message}</span>
+            </div>
+        </div>
+      )}
     </div>
   );
 }

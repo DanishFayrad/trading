@@ -12,6 +12,8 @@ export default function DashboardPage() {
   const [miningActive, setMiningActive] = useState(false);
   const [miningDuration, setMiningDuration] = useState('00:00:00');
   const [activeDeposits, setActiveDeposits] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchUserStats = async () => {
     try {
@@ -25,7 +27,7 @@ export default function DashboardPage() {
       if (data.success) {
         const approvedDeposits = data.data.filter((d: any) => d.status === 'approved');
         const total = approvedDeposits.reduce((acc: number, d: any) => acc + (Number(d.amount) || 0), 0);
-        setTotalInvested(total);
+        setTotalInvested(total / 278);
 
         if (total > 0) {
           setMiningActive(true);
@@ -46,10 +48,10 @@ export default function DashboardPage() {
     let initialBalance = 0;
     const now = Date.now();
     activeDeposits.forEach(d => {
-        const amount = Number(d.amount) || 0;
+        const amountUsd = (Number(d.amount) || 0) / 278;
         const approvedAt = new Date(d.updatedAt || now).getTime();
         const elapsedSeconds = Math.max(0, (now - approvedAt) / 1000);
-        initialBalance += amount * RATE_PER_DOLLAR_PER_SECOND * elapsedSeconds;
+        initialBalance += amountUsd * RATE_PER_DOLLAR_PER_SECOND * elapsedSeconds;
     });
     setBalance(initialBalance);
 
@@ -79,8 +81,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      const user = JSON.parse(userStr);
-      if (user.role === 'admin') {
+      const userObj = JSON.parse(userStr);
+      setUser(userObj);
+      if (userObj.role === 'admin') {
         setIsAdmin(true);
         fetchAdminStats();
       } else {
@@ -145,6 +148,35 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
+  const baseUrl = process.env.NEXT_PUBLIC_LIVE_URL || 'https://invest-app-ab4f3840a6a6.herokuapp.com';
+  const referralLink = user?.referralCode ? `${baseUrl}/register?ref=${user.referralCode}` : 'Loading...';
+
+  const handleCopy = () => {
+    if (user?.referralCode) {
+      navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleShare = async () => {
+    if (user?.referralCode) {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Join me on Invest App',
+            text: 'Use my referral link to join!',
+            url: referralLink,
+          });
+        } catch (err) {
+          console.error('Error sharing:', err);
+        }
+      } else {
+        handleCopy();
+      }
+    }
+  };
+
   const quickActions = [
     { name: 'Deposit', sub: 'Add funds', path: '/deposit', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
     { name: 'Invest', sub: 'AI plans', path: '/plans', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z' },
@@ -181,6 +213,7 @@ export default function DashboardPage() {
                 <div className="glass-soft rounded-2xl p-4">
                   <p className="text-[12px] text-[#86868b] mb-1">Total liquidity</p>
                   <h3 className="text-[22px] font-semibold tracking-tight">$428,950</h3>
+                  <p className="text-[12px] text-[#86868b] mt-1">Rs {(428950 * 278).toLocaleString()}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <svg className="w-3 h-3 text-[#15a86b]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12 7a1 1 0 110-2h5V10a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 11.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L10 10.586 13.586 7H12z" clipRule="evenodd" /></svg>
                     <span className="text-[12px] text-[#15a86b] font-medium">+12.5%</span>
@@ -230,11 +263,19 @@ export default function DashboardPage() {
 
               <p className="text-[13px] text-[#86868b] mb-2">Live balance accumulation</p>
 
-              <div className="flex items-center justify-center mb-8">
-                <span className="text-[26px] font-semibold text-[#5b5bd6] self-start mt-2">$</span>
-                <h2 className={`text-[44px] sm:text-[56px] font-semibold tracking-tight font-mono transition-colors ${miningActive ? 'text-[#1d1d1f]' : 'text-[#c7c7cc]'}`}>
-                  {balance.toFixed(6)}<span className="text-[#5b5bd6]/40">{balance.toFixed(8).slice(-2)}</span>
-                </h2>
+              <div className="flex flex-col items-center justify-center mb-8">
+                <div className="flex items-center justify-center">
+                  <span className="text-[26px] font-semibold text-[#5b5bd6] self-start mt-2">$</span>
+                  <h2 className={`text-[44px] sm:text-[56px] font-semibold tracking-tight font-mono transition-colors ${miningActive ? 'text-[#1d1d1f]' : 'text-[#c7c7cc]'}`}>
+                    {balance.toFixed(6)}<span className="text-[#5b5bd6]/40">{balance.toFixed(8).slice(-2)}</span>
+                  </h2>
+                </div>
+                <div className="flex items-center justify-center mt-1">
+                  <span className="text-[16px] font-medium text-[#15a86b] mr-1">Rs</span>
+                  <h3 className={`text-[20px] sm:text-[24px] font-medium tracking-tight font-mono transition-colors ${miningActive ? 'text-[#1d1d1f]' : 'text-[#c7c7cc]'}`}>
+                    {(balance * 278).toFixed(2)}
+                  </h3>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-8">
@@ -272,14 +313,18 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <h3 className="text-[14px] font-semibold tracking-tight">Affiliate link</h3>
-                <p className="text-[12px] text-[#86868b] font-mono truncate">...invest.com/reg?ref=di1t5u6qhc</p>
+                <p className="text-[12px] text-[#86868b] font-mono truncate">{referralLink}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button className="w-9 h-9 rounded-lg text-[#86868b] hover:text-[#5b5bd6] bg-[#f5f5f7] hover:bg-[#eef0ff] border border-[#e6e6eb] transition-all flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              <button onClick={handleCopy} className={`w-9 h-9 rounded-lg transition-all flex items-center justify-center ${copied ? 'bg-emerald-50 text-[#15a86b] border-emerald-100' : 'text-[#86868b] hover:text-[#5b5bd6] bg-[#f5f5f7] hover:bg-[#eef0ff] border border-[#e6e6eb]'}`}>
+                {copied ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                )}
               </button>
-              <button className="btn-primary w-9 h-9 rounded-lg flex items-center justify-center">
+              <button onClick={handleShare} className="btn-primary w-9 h-9 rounded-lg flex items-center justify-center">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
               </button>
             </div>

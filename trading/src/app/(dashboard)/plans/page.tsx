@@ -87,9 +87,10 @@ export default function PlansPage() {
                             <div className="text-right">
                                 <p className={`text-[12px] mb-1 ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Price Point</p>
                                 <p className={`text-[22px] font-semibold font-mono ${featured ? 'text-white' : 'text-[#1d1d1f]'}`}>${plan.price}</p>
+                                <p className={`text-[12px] font-mono ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Rs {(plan.price * 278).toLocaleString()}</p>
                             </div>
                             <Link
-                                href={`/deposit?amount=${plan.price}&plan=${plan.name}`}
+                                href={`/deposit?amount=${plan.price * 278}&plan=${plan.name}`}
                                 className={`px-8 py-3.5 font-medium rounded-xl transition-all duration-300 flex items-center gap-3 group/btn ${featured ? 'bg-white text-[#5b5bd6] hover:bg-white/90' : 'btn-primary'}`}
                             >
                                 Deploy
@@ -106,6 +107,7 @@ export default function PlansPage() {
                         <div className={`text-center border-x ${featured ? 'border-white/20' : 'border-[#e6e6eb]'}`}>
                             <p className={`text-[12px] mb-1 ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Daily Accrual</p>
                             <p className={`text-[13px] font-semibold tracking-tight ${featured ? 'text-white' : 'text-[#5b5bd6]'}`}>~${(plan.price * parseFloat(plan.roi) / 100).toFixed(2)}</p>
+                            <p className={`text-[11px] ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Rs {((plan.price * parseFloat(plan.roi) / 100) * 278).toFixed(2)}</p>
                         </div>
                         <div className="text-center">
                             <p className={`text-[12px] mb-1 ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Node Status</p>

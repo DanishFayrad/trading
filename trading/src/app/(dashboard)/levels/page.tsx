@@ -6,6 +6,7 @@ const levels = [
         tier: "Level 1",
         rank: "Bronze Partner",
         required: "$0 - $500",
+        requiredPkr: "Rs 0 - Rs 139,000",
         bonus: "5% Direct",
         color: "from-orange-400 to-orange-600",
         perks: ["Standard Support", "Basic Analytics", "Daily Payouts"]
@@ -14,6 +15,7 @@ const levels = [
         tier: "Level 2",
         rank: "Silver Elite",
         required: "$501 - $2500",
+        requiredPkr: "Rs 139,278 - Rs 695,000",
         bonus: "8% Direct + 2% Team",
         color: "from-slate-400 to-slate-600",
         perks: ["Priority Support", "Advanced Stats", "Instant Withdrawals"]
@@ -22,6 +24,7 @@ const levels = [
         tier: "Level 3",
         rank: "Gold Master",
         required: "$2501 - $10000",
+        requiredPkr: "Rs 695,278 - Rs 2,780,000",
         bonus: "12% Direct + 5% Team",
         color: "from-yellow-400 to-yellow-600",
         perks: ["Dedicated Manager", "VIP Nodes", "0% Fee Cash-out"]
@@ -30,6 +33,7 @@ const levels = [
         tier: "Level 4",
         rank: "Platinum Legend",
         required: "$10000+",
+        requiredPkr: "Rs 2,780,000+",
         bonus: "15% Direct + 10% Team",
         color: "from-blue-600 to-indigo-700",
         perks: ["Elite Governance", "Custom Hardware", "Profit Sharing"]
@@ -77,6 +81,7 @@ export default function LevelsPage() {
                           <p className="text-[12px] text-[#86868b] mb-1">Incentive plan</p>
                           <p className="text-[15px] font-semibold gradient-text tracking-tight">{lvl.bonus}</p>
                           <p className="text-[12px] text-[#86868b] mt-1">Required: {lvl.required}</p>
+                          <p className="text-[11px] font-mono text-[#86868b] mt-0.5">{lvl.requiredPkr}</p>
                       </div>
                   </div>
 

@@ -87,7 +87,8 @@ export default function InvestsPage() {
 
                         <div className="text-right">
                             <p className="text-[12px] text-[#86868b] mb-1">Infrastructure cost</p>
-                            <p className="text-[20px] font-semibold tracking-tight font-mono">${inv.amount}</p>
+                            <p className="text-[20px] font-semibold tracking-tight font-mono">Rs {inv.amount.toLocaleString()}</p>
+                            <p className="text-[12px] font-mono text-[#86868b]">${(inv.amount / 278).toFixed(2)}</p>
                         </div>
                     </div>
 

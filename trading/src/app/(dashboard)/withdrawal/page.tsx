@@ -105,7 +105,8 @@ export default function WithdrawalPage() {
           <div className="glass-soft rounded-3xl p-6 mb-8 flex items-center justify-between">
               <div>
                   <p className="text-[12px] sm:text-[13px] text-[#86868b] mb-1">Withdrawable balance</p>
-                  <h2 className="text-[28px] font-semibold tracking-tight text-[#1d1d1f] font-mono">${balance.toFixed(2)}</h2>
+                  <h2 className="text-[28px] font-semibold tracking-tight text-[#1d1d1f] font-mono">Rs {balance.toLocaleString()}</h2>
+                  <p className="text-[13px] font-mono text-[#86868b]">$ {(balance / 278).toFixed(2)}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#15a86b] flex items-center justify-center">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -130,7 +131,10 @@ export default function WithdrawalPage() {
             </div>
 
             <div>
-                <label className="block text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">Withdrawal amount ($)</label>
+                <label className="flex justify-between text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">
+                    <span>Withdrawal amount (Rs)</span>
+                    {amount && <span>~ $ {(Number(amount) / 278).toFixed(2)}</span>}
+                </label>
                 <input
                     type="number"
                     value={amount}

@@ -174,7 +174,8 @@ export default function AdminDashboard() {
                                 <div className="flex gap-6">
                                     <div className="flex flex-col">
                                         <span className="text-[11px] text-[#86868b]">Amount</span>
-                                        <span className="text-[16px] font-semibold text-[#15a86b]">${deposit.amount}</span>
+                                        <span className="text-[16px] font-semibold text-[#15a86b]">Rs {deposit.amount.toLocaleString()}</span>
+                                        <span className="text-[11px] font-mono text-[#86868b]">$ {(deposit.amount / 278).toFixed(2)}</span>
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-[11px] text-[#86868b]">Method</span>
@@ -219,7 +220,8 @@ export default function AdminDashboard() {
                             <div className="flex gap-6">
                                 <div className="flex flex-col">
                                     <span className="text-[11px] text-[#86868b]">Amount</span>
-                                    <span className="text-[16px] font-semibold text-red-600">${withdrawal.amount}</span>
+                                    <span className="text-[16px] font-semibold text-red-600">Rs {withdrawal.amount.toLocaleString()}</span>
+                                    <span className="text-[11px] font-mono text-[#86868b]">$ {(withdrawal.amount / 278).toFixed(2)}</span>
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[11px] text-[#86868b]">Method</span>
