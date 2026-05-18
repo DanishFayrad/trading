@@ -106,6 +106,12 @@ function RegisterForm() {
           <div className="text-center mb-7">
             <h1 className="text-[30px] font-semibold tracking-[-0.02em]">Create your account</h1>
             <p className="mt-1.5 text-[15px] text-[#6e6e73]">Set up your mining node in three steps</p>
+            {referralCode && (
+              <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full chip text-[12px] font-medium">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                Invited via referral · <span className="font-mono">{referralCode}</span>
+              </div>
+            )}
           </div>
 
           {/* Stepper */}

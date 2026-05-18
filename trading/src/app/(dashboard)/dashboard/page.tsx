@@ -15,7 +15,9 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
-  const fetchUserStats = async () => {
+  const cacheKey = (userId: string) => `mining-stats-${userId}`;
+
+  const fetchUserStats = async (userId?: string) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
@@ -32,6 +34,12 @@ export default function DashboardPage() {
         if (total > 0) {
           setMiningActive(true);
           setActiveDeposits(approvedDeposits);
+          if (userId) {
+            localStorage.setItem(cacheKey(userId), JSON.stringify({
+              totalInvested: total / 278,
+              activeDeposits: approvedDeposits
+            }));
+          }
         }
       }
     } catch (error) {
@@ -42,34 +50,39 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!miningActive) return;
 
-    // $2.5 earned per $1 invested every 24 hours
-    const RATE_PER_DOLLAR_PER_SECOND = 2.5 / 86400;
+    // Rs 1 profit per $1 invested every 2 days. (USD↔PKR ≈ 278)
+    const PKR_RATE = 278;
+    const RATE_PER_DOLLAR_PER_SECOND = 1 / PKR_RATE / (2 * 86400);
 
-    let initialBalance = 0;
     const now = Date.now();
+    let earliestApprovedAt = now;
+    let initialBalance = 0;
     activeDeposits.forEach(d => {
         const amountUsd = (Number(d.amount) || 0) / 278;
-        const approvedAt = new Date(d.updatedAt || now).getTime();
+        const approvedAt = new Date(d.approvedAt || d.updatedAt || d.createdAt || now).getTime();
+        if (approvedAt < earliestApprovedAt) earliestApprovedAt = approvedAt;
         const elapsedSeconds = Math.max(0, (now - approvedAt) / 1000);
         initialBalance += amountUsd * RATE_PER_DOLLAR_PER_SECOND * elapsedSeconds;
     });
     setBalance(initialBalance);
+
+    const formatDuration = (totalSec: number) => {
+        const s = Math.max(0, totalSec);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    };
+    setMiningDuration(formatDuration(Math.floor((now - earliestApprovedAt) / 1000)));
 
     // Smooth balance tick — 10 ticks/sec totals one second's accrual
     const smoothInterval = setInterval(() => {
         setBalance(prev => prev + totalInvested * RATE_PER_DOLLAR_PER_SECOND / 10);
     }, 100);
 
-    // Separate 1-second tick just for the duration HH:MM:SS display
+    // Duration recomputed from elapsed time (persists across refresh, drift-free)
     const durationInterval = setInterval(() => {
-        setMiningDuration(prev => {
-            const parts = prev.split(':').map(Number);
-            let [h, m, s] = parts;
-            s++;
-            if (s >= 60) { s = 0; m++; }
-            if (m >= 60) { m = 0; h++; }
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        });
+        setMiningDuration(formatDuration(Math.floor((Date.now() - earliestApprovedAt) / 1000)));
     }, 1000);
 
     return () => {
@@ -80,16 +93,30 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const userObj = JSON.parse(userStr);
-      setUser(userObj);
-      if (userObj.role === 'admin') {
-        setIsAdmin(true);
-        fetchAdminStats();
-      } else {
-        fetchUserStats();
-      }
+    if (!userStr) return;
+    const userObj = JSON.parse(userStr);
+    setUser(userObj);
+
+    if (userObj.role === 'admin') {
+      setIsAdmin(true);
+      fetchAdminStats();
+      return;
     }
+
+    // Hydrate instantly from cache so invested/counter survive logout & reload
+    const cached = localStorage.getItem(cacheKey(userObj.id));
+    if (cached) {
+      try {
+        const c = JSON.parse(cached);
+        if (c.activeDeposits?.length > 0) {
+          setTotalInvested(c.totalInvested);
+          setActiveDeposits(c.activeDeposits);
+          setMiningActive(true);
+        }
+      } catch {}
+    }
+
+    fetchUserStats(userObj.id);
   }, []);
 
   const fetchAdminStats = async () => {
@@ -212,11 +239,10 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="glass-soft rounded-2xl p-4">
                   <p className="text-[12px] text-[#86868b] mb-1">Total liquidity</p>
-                  <h3 className="text-[22px] font-semibold tracking-tight">$428,950</h3>
-                  <p className="text-[12px] text-[#86868b] mt-1">Rs {(428950 * 278).toLocaleString()}</p>
+                  <h3 className="text-[22px] font-semibold tracking-tight">$0</h3>
+                  <p className="text-[12px] text-[#86868b] mt-1">Rs 0</p>
                   <div className="flex items-center gap-1 mt-1">
-                    <svg className="w-3 h-3 text-[#15a86b]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12 7a1 1 0 110-2h5V10a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 11.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L10 10.586 13.586 7H12z" clipRule="evenodd" /></svg>
-                    <span className="text-[12px] text-[#15a86b] font-medium">+12.5%</span>
+                    <span className="text-[12px] text-[#86868b] font-medium">0%</span>
                   </div>
                 </div>
                 <div className="glass-soft rounded-2xl p-4">
@@ -278,14 +304,19 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-8">
-                <div className="glass-soft rounded-2xl p-4">
-                  <p className="text-[12px] text-[#86868b] mb-1">Active duration</p>
-                  <p className={`text-[18px] font-semibold font-mono ${miningActive ? 'text-[#1d1d1f]' : 'text-[#c7c7cc]'}`}>{miningDuration}</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-8">
+                <div className="glass-soft rounded-2xl p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-[12px] text-[#86868b] mb-1">Total invested</p>
+                  <p className={`text-[15px] sm:text-[18px] font-semibold font-mono ${miningActive ? 'text-[#15a86b]' : 'text-[#c7c7cc]'}`}>Rs {(totalInvested * 278).toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-[11px] text-[#86868b] mt-0.5 font-mono">${totalInvested.toFixed(2)}</p>
                 </div>
-                <div className="glass-soft rounded-2xl p-4">
-                  <p className="text-[12px] text-[#86868b] mb-1">Hash power</p>
-                  <p className={`text-[18px] font-semibold font-mono ${miningActive ? 'text-[#5b5bd6]' : 'text-[#c7c7cc]'}`}>{totalInvested > 0 ? (totalInvested * 0.8).toFixed(1) : '0.0'} GH/s</p>
+                <div className="glass-soft rounded-2xl p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-[12px] text-[#86868b] mb-1">Active duration</p>
+                  <p className={`text-[15px] sm:text-[18px] font-semibold font-mono ${miningActive ? 'text-[#1d1d1f]' : 'text-[#c7c7cc]'}`}>{miningDuration}</p>
+                </div>
+                <div className="glass-soft rounded-2xl p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-[12px] text-[#86868b] mb-1">Hash power</p>
+                  <p className={`text-[15px] sm:text-[18px] font-semibold font-mono ${miningActive ? 'text-[#5b5bd6]' : 'text-[#c7c7cc]'}`}>{totalInvested > 0 ? (totalInvested * 0.8).toFixed(1) : '0.0'} GH/s</p>
                 </div>
               </div>
 
