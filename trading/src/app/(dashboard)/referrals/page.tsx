@@ -163,9 +163,21 @@ export default function ReferralsPage() {
                       </span>
                   </div>
                   <p className="text-[13px] text-[#4a4a50] leading-relaxed mb-4">
-                      {fastWithdrawalEligible
-                          ? `Your VIP rank is active: you receive a 20% bonus per deposit and your withdrawals are processed within 6 hours instead of the standard 24 hours. ${milestoneBonusGiven ? `Milestone bonus of Rs ${milestoneBonusAmount} credited.` : ''}`
-                          : `Invite ${referralsThreshold} users who deposit to unlock exclusive partner benefits: earn a huge 20% bonus per deposit, and upgrade your withdrawal processing time to 6 hours instead of the standard 24 hours. One-time Rs ${milestoneBonusAmount} bonus on reaching ${referralsThreshold}.`}
+                      {fastWithdrawalEligible ? (
+                          <>
+                              Your VIP rank is active: you receive a 20% bonus per deposit and your withdrawals are processed within 6 hours instead of the standard 24 hours. {milestoneBonusGiven ? `Milestone bonus of Rs ${milestoneBonusAmount} credited.` : ''}
+                              <span className="block mt-2 font-medium text-[14px] text-right font-sans" dir="rtl">
+                                  آپ کا وی آئی پی رینک فعال ہے: آپ کو ہر ڈیپازٹ پر 20% بونس ملے گا اور آپ کے ودڈرال عام 24 گھنٹے کے بجائے 6 گھنٹے میں پروسیس ہوں گے۔ {milestoneBonusGiven ? `روپے ${milestoneBonusAmount} کا سنگ میل بونس کریڈٹ ہو چکا ہے۔` : ''}
+                              </span>
+                          </>
+                      ) : (
+                          <>
+                              Invite {referralsThreshold} users who deposit to unlock exclusive partner benefits: earn a huge 20% bonus per deposit, and upgrade your withdrawal processing time to 6 hours instead of the standard 24 hours. One-time Rs {milestoneBonusAmount} bonus on reaching {referralsThreshold}.
+                              <span className="block mt-2 font-medium text-[14px] text-right font-sans" dir="rtl">
+                                  خصوصی پارٹنر فوائد حاصل کرنے کے لیے ایسے {referralsThreshold} صارفین کو دعوت دیں جو ڈیپازٹ کریں۔ ہر ڈیپازٹ پر 20% کا بڑا بونس حاصل کریں، اور اپنے ودڈرال کی پروسیسنگ کا وقت عام 24 گھنٹے سے اپ گریڈ کر کے صرف 6 گھنٹے کریں۔ {referralsThreshold} تک پہنچنے پر روپے {milestoneBonusAmount} کا یکمشت بونس۔
+                              </span>
+                          </>
+                      )}
                   </p>
                   <div className="glass-soft rounded-2xl p-4 space-y-3 border border-white/40">
                       <div className="flex items-center justify-between text-[12px]">
