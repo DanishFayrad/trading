@@ -23,14 +23,19 @@ function DepositContent() {
     { id: 'jazzcash', name: 'Jazzcash', subtitle: 'Deposit: PKR/USD', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
   ];
 
-  const [modal, setModal] = useState<{ show: boolean, title: string, message: string, type: 'success' | 'error' }>({
-    show: false, title: '', message: '', type: 'success'
+  const [toast, setToast] = useState<{ show: boolean, message: string, type: 'success' | 'error' }>({
+    show: false, message: '', type: 'success'
   });
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!screenshot || !amount || !selectedMethod) {
-      setModal({ show: true, title: 'Incomplete', message: 'Please fill all required fields.', type: 'error' });
+      showToast('Please fill all required fields', 'error');
       return;
     }
 
@@ -58,22 +63,17 @@ function DepositContent() {
       const data = await response.json();
       if (data.success) {
         setSuccess(true);
-        setModal({
-            show: true,
-            title: 'Submitted!',
-            message: 'Your deposit has been sent for verification. You can track its status in the logs.',
-            type: 'success'
-        });
+        showToast('Deposit submitted successfully!', 'success');
         setSelectedMethod(null);
         setAmount('');
         setScreenshot(null);
         setTransactionId('');
       } else {
-        setModal({ show: true, title: 'Failed', message: data.message || 'Submission failed.', type: 'error' });
+        showToast(data.message || 'Submission failed', 'error');
       }
     } catch (error) {
       console.error(error);
-      setModal({ show: true, title: 'Error', message: 'An error occurred. Please check your connection.', type: 'error' });
+      showToast('An error occurred. Please check your connection.', 'error');
     } finally {
       setLoading(false);
     }
@@ -181,25 +181,15 @@ function DepositContent() {
           </div>
         </div>
 
-        {/* Action Result Modal */}
-        {modal.show && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/30 backdrop-blur-sm animate-in fade-in duration-300">
-                <div className="glass rounded-3xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-300 text-center">
-                    <div className={`w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center ${modal.type === 'success' ? 'bg-emerald-50 text-[#15a86b]' : 'bg-red-50 text-red-600'}`}>
-                        {modal.type === 'success' ? (
-                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                        ) : (
-                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                        )}
-                    </div>
-                    <h3 className="text-[20px] font-semibold tracking-tight mb-2">{modal.title}</h3>
-                    <p className="text-[14px] text-[#86868b] mb-8">{modal.message}</p>
-                    <button
-                        onClick={() => setModal({ ...modal, show: false })}
-                        className="btn-primary w-full py-3.5 rounded-xl font-medium text-[15px] transition-all"
-                    >
-                        Okay
-                    </button>
+        {toast.show && (
+            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-rise">
+                <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-lg border ${toast.type === 'success' ? 'bg-[#f0fdf4] border-[#bbf7d0] text-[#15a86b]' : 'bg-[#fef2f2] border-[#fecaca] text-[#ef4444]'}`}>
+                    {toast.type === 'success' ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    )}
+                    <span className="text-[14px] font-medium tracking-tight">{toast.message}</span>
                 </div>
             </div>
         )}

@@ -28,6 +28,11 @@ export default function ReferralsPage() {
   const [balance, setBalance] = useState(0);
   const [earnedTotal, setEarnedTotal] = useState(0);
   const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [successfulReferrals, setSuccessfulReferrals] = useState(0);
+  const [referralsThreshold, setReferralsThreshold] = useState(10);
+  const [fastWithdrawalEligible, setFastWithdrawalEligible] = useState(false);
+  const [milestoneBonusGiven, setMilestoneBonusGiven] = useState(false);
+  const [milestoneBonusAmount, setMilestoneBonusAmount] = useState(1000);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -54,6 +59,11 @@ export default function ReferralsPage() {
                 setBalance(affData.data.balance || 0);
                 setEarnedTotal(affData.data.earnedTotal || 0);
                 setCommissions(affData.data.commissions || []);
+                setSuccessfulReferrals(affData.data.successfulReferrals || 0);
+                setReferralsThreshold(affData.data.referralsThreshold || 10);
+                setFastWithdrawalEligible(!!affData.data.fastWithdrawalEligible);
+                setMilestoneBonusGiven(!!affData.data.milestoneBonusGiven);
+                setMilestoneBonusAmount(affData.data.milestoneBonusAmount || 1000);
             }
         } catch (error) {
             console.error(error);
@@ -136,6 +146,33 @@ export default function ReferralsPage() {
               </div>
           </div>
         </div>
+      </div>
+
+      <div className={`rounded-3xl p-5 border ${fastWithdrawalEligible ? 'bg-emerald-50 border-emerald-100' : 'bg-[#eef0ff] border-[#dadcff]'}`}>
+          <div className="flex items-start gap-3.5">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${fastWithdrawalEligible ? 'bg-white text-[#15a86b]' : 'bg-white text-[#5b5bd6]'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                  <h3 className={`text-[14px] font-semibold tracking-tight ${fastWithdrawalEligible ? 'text-[#15a86b]' : 'text-[#1d1d1f]'}`}>
+                      {fastWithdrawalEligible ? 'Fast withdrawal unlocked — 6 hours' : 'Invite 10 users for fast withdrawal'}
+                  </h3>
+                  <p className="text-[12px] text-[#515159] mt-1">
+                      {fastWithdrawalEligible
+                          ? `Your withdrawals are processed within 6 hours instead of 24. ${milestoneBonusGiven ? `Milestone bonus of Rs ${milestoneBonusAmount} credited.` : ''}`
+                          : `Invite ${referralsThreshold} users through your referral link and get fast withdrawal processing within 6 hours instead of 24 hours. One-time Rs ${milestoneBonusAmount} bonus on reaching ${referralsThreshold}.`}
+                  </p>
+                  <div className="mt-3">
+                      <div className="flex items-center justify-between text-[11px] text-[#515159] mb-1.5">
+                          <span className="font-medium">{successfulReferrals} / {referralsThreshold} active referrals</span>
+                          <span>{Math.min(100, Math.round((successfulReferrals / referralsThreshold) * 100))}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white overflow-hidden">
+                          <div className={`h-full transition-all ${fastWithdrawalEligible ? 'bg-[#15a86b]' : 'bg-[#5b5bd6]'}`} style={{ width: `${Math.min(100, (successfulReferrals / referralsThreshold) * 100)}%` }}></div>
+                      </div>
+                  </div>
+              </div>
+          </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

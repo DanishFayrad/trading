@@ -11,26 +11,38 @@ export default function WithdrawalPage() {
     show: false, title: '', message: '', type: 'success'
   });
   const [balance, setBalance] = useState(0);
+  const [fastWithdrawalEligible, setFastWithdrawalEligible] = useState(false);
+  const [successfulReferrals, setSuccessfulReferrals] = useState(0);
+  const [referralsThreshold, setReferralsThreshold] = useState(10);
 
   useEffect(() => {
-    // Fetch real balance from deposits (simplified for now)
-    const fetchBalance = async () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    const authHeader = { 'Authorization': `Bearer ${token}` };
+
+    const fetchAll = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${apiUrl}/api/deposits/my`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (data.success) {
-                const total = data.data.filter((d: any) => d.status === 'approved').reduce((acc: number, d: any) => acc + d.amount, 0);
+            const [depRes, affRes] = await Promise.all([
+                fetch(`${apiUrl}/api/deposits/my`, { headers: authHeader }),
+                fetch(`${apiUrl}/api/auth/affiliate`, { headers: authHeader }),
+            ]);
+            const depData = await depRes.json();
+            const affData = await affRes.json();
+            if (depData.success) {
+                const total = depData.data.filter((d: any) => d.status === 'approved').reduce((acc: number, d: any) => acc + d.amount, 0);
                 setBalance(total);
+            }
+            if (affData.success) {
+                setFastWithdrawalEligible(!!affData.data.fastWithdrawalEligible);
+                setSuccessfulReferrals(affData.data.successfulReferrals || 0);
+                setReferralsThreshold(affData.data.referralsThreshold || 10);
             }
         } catch (error) {
             console.error(error);
         }
     };
-    fetchBalance();
+    fetchAll();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +114,7 @@ export default function WithdrawalPage() {
             </div>
           </div>
 
-          <div className="glass-soft rounded-3xl p-6 mb-8 flex items-center justify-between">
+          <div className="glass-soft rounded-3xl p-6 mb-4 flex items-center justify-between">
               <div>
                   <p className="text-[12px] sm:text-[13px] text-[#86868b] mb-1">Withdrawable balance</p>
                   <h2 className="text-[28px] font-semibold tracking-tight text-[#1d1d1f] font-mono">Rs {balance.toLocaleString()}</h2>
@@ -110,6 +122,22 @@ export default function WithdrawalPage() {
               </div>
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#15a86b] flex items-center justify-center">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              </div>
+          </div>
+
+          <div className={`rounded-2xl p-4 mb-8 border flex items-center gap-3 ${fastWithdrawalEligible ? 'bg-emerald-50 border-emerald-100' : 'bg-[#eef0ff] border-[#dadcff]'}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${fastWithdrawalEligible ? 'bg-white text-[#15a86b]' : 'bg-white text-[#5b5bd6]'}`}>
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                  <p className={`text-[13px] font-semibold ${fastWithdrawalEligible ? 'text-[#15a86b]' : 'text-[#1d1d1f]'}`}>
+                      Estimated processing: <span className="font-bold">{fastWithdrawalEligible ? '6 hours' : '24 hours'}</span>
+                  </p>
+                  <p className="text-[11px] text-[#515159] mt-0.5">
+                      {fastWithdrawalEligible
+                          ? `Fast-track active — ${successfulReferrals} active referrals.`
+                          : `Invite ${referralsThreshold - successfulReferrals} more active users to unlock 6-hour processing.`}
+                  </p>
               </div>
           </div>
 

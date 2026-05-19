@@ -15,9 +15,29 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
+  const [successfulReferrals, setSuccessfulReferrals] = useState(0);
+  const [referralsThreshold, setReferralsThreshold] = useState(10);
+  const [fastWithdrawalEligible, setFastWithdrawalEligible] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
+    const fetchAffiliate = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await fetch(`${apiUrl}/api/auth/affiliate`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSuccessfulReferrals(data.data.successfulReferrals || 0);
+          setReferralsThreshold(data.data.referralsThreshold || 10);
+          setFastWithdrawalEligible(!!data.data.fastWithdrawalEligible);
+        }
+      } catch {}
+    };
+    fetchAffiliate();
   }, []);
 
   const cacheKey = (userId: string) => `mining-stats-${userId}`;
@@ -337,6 +357,36 @@ export default function DashboardPage() {
                   </>
                 )}
               </Link>
+            </div>
+          </div>
+
+          {/* Fast withdrawal notice */}
+          <div className={`rounded-3xl p-5 border ${fastWithdrawalEligible ? 'bg-emerald-50 border-emerald-100' : 'bg-[#eef0ff] border-[#dadcff]'}`}>
+            <div className="flex items-start gap-3.5">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${fastWithdrawalEligible ? 'bg-white text-[#15a86b]' : 'bg-white text-[#5b5bd6]'}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className={`text-[14px] font-semibold tracking-tight ${fastWithdrawalEligible ? 'text-[#15a86b]' : 'text-[#1d1d1f]'}`}>
+                  {fastWithdrawalEligible ? 'Fast withdrawal unlocked — processed within 6 hours' : 'Unlock fast withdrawal'}
+                </h3>
+                <p className="text-[12px] text-[#515159] mt-1">
+                  {fastWithdrawalEligible
+                    ? `You qualified by inviting ${successfulReferrals}+ active users. Your withdrawals are processed within 6 hours instead of 24.`
+                    : `Invite ${referralsThreshold} users through your referral link and get fast withdrawal processing within 6 hours instead of 24 hours.`}
+                </p>
+                {!fastWithdrawalEligible && (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between text-[11px] text-[#515159] mb-1.5">
+                      <span className="font-medium">{successfulReferrals} / {referralsThreshold} successful referrals</span>
+                      <span>{Math.round((successfulReferrals / referralsThreshold) * 100)}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white overflow-hidden">
+                      <div className="h-full bg-[#5b5bd6] transition-all" style={{ width: `${Math.min(100, (successfulReferrals / referralsThreshold) * 100)}%` }}></div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
