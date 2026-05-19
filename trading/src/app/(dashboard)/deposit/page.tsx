@@ -27,15 +27,6 @@ function DepositContent() {
     show: false, title: '', message: '', type: 'success'
   });
 
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!screenshot || !amount || !selectedMethod) {
@@ -46,23 +37,22 @@ function DepositContent() {
     setLoading(true);
 
     try {
-      const base64Image = await convertToBase64(screenshot);
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
+
+      const body = new FormData();
+      body.append('amount', amount);
+      body.append('paymentMethod', selectedMethod);
+      body.append('transactionId', transactionId);
+      body.append('planName', planName);
+      body.append('screenshot', screenshot);
 
       const response = await fetch(`${apiUrl}/api/deposits`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          amount,
-          paymentMethod: selectedMethod,
-          transactionId,
-          planName,
-          screenshot: base64Image
-        })
+        body,
       });
 
       const data = await response.json();

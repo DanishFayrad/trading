@@ -14,6 +14,11 @@ export default function DashboardPage() {
   const [activeDeposits, setActiveDeposits] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const cacheKey = (userId: string) => `mining-stats-${userId}`;
 
@@ -175,8 +180,7 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const baseUrl = process.env.NEXT_PUBLIC_LIVE_URL || 'https://invest-app-ab4f3840a6a6.herokuapp.com';
-  const referralLink = user?.referralCode ? `${baseUrl}/register?ref=${user.referralCode}` : 'Loading...';
+  const referralLink = user?.referralCode && origin ? `${origin}/register?ref=${user.referralCode}` : 'Loading...';
 
   const handleCopy = () => {
     if (user?.referralCode) {

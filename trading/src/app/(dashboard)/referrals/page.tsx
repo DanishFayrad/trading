@@ -9,29 +9,51 @@ interface Referral {
     createdAt: string;
 }
 
+interface Commission {
+    _id: string;
+    referredUser?: { firstName: string; lastName: string; email: string } | null;
+    depositAmount: number;
+    amount: number;
+    percentage: number;
+    status: 'credited' | 'reversed';
+    createdAt: string;
+}
+
 export default function ReferralsPage() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [referralCode, setReferralCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState('');
+  const [balance, setBalance] = useState(0);
+  const [earnedTotal, setEarnedTotal] = useState(0);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
 
   useEffect(() => {
+    setOrigin(window.location.origin);
     const userStr = localStorage.getItem('user');
     if (userStr) {
         const user = JSON.parse(userStr);
         setReferralCode(user.referralCode || 'NOT_FOUND');
     }
 
-    const fetchReferrals = async () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const token = localStorage.getItem('token');
+    const authHeader = { 'Authorization': `Bearer ${token}` };
+
+    const fetchAll = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${apiUrl}/api/auth/referrals`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (data.success) {
-                setReferrals(data.data);
+            const [refRes, affRes] = await Promise.all([
+                fetch(`${apiUrl}/api/auth/referrals`, { headers: authHeader }),
+                fetch(`${apiUrl}/api/auth/affiliate`, { headers: authHeader }),
+            ]);
+            const refData = await refRes.json();
+            const affData = await affRes.json();
+            if (refData.success) setReferrals(refData.data);
+            if (affData.success) {
+                setBalance(affData.data.balance || 0);
+                setEarnedTotal(affData.data.earnedTotal || 0);
+                setCommissions(affData.data.commissions || []);
             }
         } catch (error) {
             console.error(error);
@@ -39,11 +61,12 @@ export default function ReferralsPage() {
             setLoading(false);
         }
     };
-    fetchReferrals();
+    fetchAll();
   }, []);
 
-  const baseUrl = process.env.NEXT_PUBLIC_LIVE_URL || 'https://invest-app-ab4f3840a6a6.herokuapp.com';
-  const referralLink = referralCode !== 'NOT_FOUND' && referralCode !== '' ? `${baseUrl}/register?ref=${referralCode}` : 'Loading...';
+  const formatPKR = (n: number) => `Rs ${Math.round(n).toLocaleString()}`;
+
+  const referralLink = referralCode !== 'NOT_FOUND' && referralCode !== '' && origin ? `${origin}/register?ref=${referralCode}` : 'Loading...';
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(referralLink);
@@ -113,6 +136,54 @@ export default function ReferralsPage() {
               </div>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+          <div className="glass rounded-2xl p-5">
+              <p className="text-[12px] text-[#86868b] font-medium">Affiliate balance</p>
+              <p className="text-[22px] font-semibold tracking-tight mt-1 text-[#15a86b]">{formatPKR(balance)}</p>
+              <p className="text-[11px] text-[#86868b] mt-1">Available to withdraw</p>
+          </div>
+          <div className="glass rounded-2xl p-5">
+              <p className="text-[12px] text-[#86868b] font-medium">Total earned</p>
+              <p className="text-[22px] font-semibold tracking-tight mt-1">{formatPKR(earnedTotal)}</p>
+              <p className="text-[11px] text-[#86868b] mt-1">All-time commissions</p>
+          </div>
+      </div>
+
+      <div className="glass rounded-3xl p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[15px] font-semibold tracking-tight">Commission history</h3>
+              <span className="chip px-2.5 py-1 rounded-full text-[12px] font-medium">10% per deposit</span>
+          </div>
+          <div className="space-y-1.5">
+              {loading ? (
+                  <div className="text-center p-8 text-[#86868b] text-[13px] animate-pulse">Loading...</div>
+              ) : commissions.length === 0 ? (
+                  <div className="text-center p-8 border border-dashed border-[#e6e6eb] rounded-2xl">
+                      <p className="text-[#86868b] text-[13px]">No commissions yet. Share your link to start earning!</p>
+                  </div>
+              ) : (
+                  commissions.map((c) => (
+                      <div key={c._id} className="flex items-center justify-between p-3 rounded-xl hover:bg-[#f5f5f7] transition-colors">
+                          <div>
+                              <h4 className="text-[14px] font-medium tracking-tight">
+                                  {c.referredUser ? `${c.referredUser.firstName} ${c.referredUser.lastName}` : 'Referred user'}
+                              </h4>
+                              <p className="text-[12px] text-[#86868b]">
+                                  Deposit {formatPKR(c.depositAmount)} · {new Date(c.createdAt).toLocaleDateString()}
+                              </p>
+                          </div>
+                          <div className="text-right">
+                              <p className={`text-[14px] font-semibold ${c.status === 'credited' ? 'text-[#15a86b]' : 'text-[#ef4444] line-through'}`}>
+                                  +{formatPKR(c.amount)}
+                              </p>
+                              <p className="text-[11px] text-[#86868b]">{c.status === 'credited' ? 'Credited' : 'Reversed'}</p>
+                          </div>
+                      </div>
+                  ))
+              )}
+          </div>
       </div>
 
       <div className="glass rounded-3xl p-5 sm:p-6">
