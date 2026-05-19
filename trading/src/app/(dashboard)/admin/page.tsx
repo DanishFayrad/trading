@@ -507,9 +507,6 @@ export default function AdminDashboard() {
 
                         return (
                             <div key={partner._id} className="glass rounded-2xl p-5 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[11px] font-medium bg-orange-50 text-orange-600">
-                                    Code: {partner.code}
-                                </div>
                                 <div className="mb-4">
                                     <h3 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f]">{partner.name}</h3>
                                     {partner.email && <p className="text-[12px] text-[#86868b]">{partner.email}</p>}
