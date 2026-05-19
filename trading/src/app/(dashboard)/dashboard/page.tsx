@@ -361,31 +361,40 @@ export default function DashboardPage() {
           </div>
 
           {/* Fast withdrawal notice */}
-          <div className={`rounded-3xl p-5 border ${fastWithdrawalEligible ? 'bg-emerald-50 border-emerald-100' : 'bg-[#eef0ff] border-[#dadcff]'}`}>
-            <div className="flex items-start gap-3.5">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${fastWithdrawalEligible ? 'bg-white text-[#15a86b]' : 'bg-white text-[#5b5bd6]'}`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          <div className={`rounded-3xl p-6 border ${fastWithdrawalEligible ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200' : 'bg-gradient-to-br from-[#f8f9ff] to-[#eef0ff] border-[#dadcff]'}`}>
+            <div className="flex items-start gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${fastWithdrawalEligible ? 'bg-white text-emerald-600' : 'bg-white text-[#5b5bd6]'}`}>
+                <svg className="w-6 h-6 animate-pulse-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className={`text-[14px] font-semibold tracking-tight ${fastWithdrawalEligible ? 'text-[#15a86b]' : 'text-[#1d1d1f]'}`}>
-                  {fastWithdrawalEligible ? 'Fast withdrawal unlocked — processed within 6 hours' : 'Unlock fast withdrawal'}
-                </h3>
-                <p className="text-[12px] text-[#515159] mt-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <h3 className={`text-[15px] font-bold tracking-tight ${fastWithdrawalEligible ? 'text-emerald-800' : 'text-[#1d1d1f]'}`}>
+                    {fastWithdrawalEligible ? 'Elite Rank Unlocked' : 'VIP Rank-up Promotion'}
+                  </h3>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${fastWithdrawalEligible ? 'bg-emerald-200 text-emerald-800' : 'bg-[#5b5bd6]/10 text-[#5b5bd6]'}`}>
+                    {fastWithdrawalEligible ? '6h Withdrawals' : '20% Bonus + 6h ETA'}
+                  </span>
+                </div>
+                
+                <p className="text-[13px] text-[#4a4a50] leading-relaxed mb-4">
                   {fastWithdrawalEligible
-                    ? `You qualified by inviting ${successfulReferrals}+ active users. Your withdrawals are processed within 6 hours instead of 24.`
-                    : `Invite ${referralsThreshold} users through your referral link and get fast withdrawal processing within 6 hours instead of 24 hours.`}
+                    ? `Congratulations! You have invited ${successfulReferrals} active users who deposited. Your VIP rank is active: you receive a 20% bonus per deposit and your withdrawals are processed within 6 hours instead of the standard 24 hours.`
+                    : `Invite ${referralsThreshold} users who deposit to unlock exclusive partner benefits: earn a huge 20% bonus per deposit, and upgrade your withdrawal processing time to 6 hours instead of the standard 24 hours.`}
                 </p>
-                {!fastWithdrawalEligible && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-[11px] text-[#515159] mb-1.5">
-                      <span className="font-medium">{successfulReferrals} / {referralsThreshold} successful referrals</span>
-                      <span>{Math.round((successfulReferrals / referralsThreshold) * 100)}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white overflow-hidden">
-                      <div className="h-full bg-[#5b5bd6] transition-all" style={{ width: `${Math.min(100, (successfulReferrals / referralsThreshold) * 100)}%` }}></div>
-                    </div>
+
+                <div className="glass-soft rounded-2xl p-4 space-y-3 border border-white/40">
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="font-semibold text-[#515159]">Rank progress</span>
+                    <span className="font-mono font-bold text-[#5b5bd6]">{successfulReferrals} / {referralsThreshold} referrals</span>
                   </div>
-                )}
+                  <div className="h-2.5 rounded-full bg-white/60 overflow-hidden relative shadow-inner">
+                    <div className={`h-full transition-all duration-500 rounded-full ${fastWithdrawalEligible ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#5b5bd6] to-[#7c5cdb]'}`} style={{ width: `${Math.min(100, (successfulReferrals / referralsThreshold) * 100)}%` }}></div>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-[#86868b] pt-1">
+                    <span>Standard Rank (24h approval)</span>
+                    <span className="font-semibold text-[#5b5bd6]">Elite Rank (6h approval + 20% commission)</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
