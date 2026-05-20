@@ -418,7 +418,7 @@ export default function DashboardPage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
               </div>
               <div className="min-w-0">
-                <h3 className="text-[14px] font-semibold tracking-tight">Affiliate link</h3>
+                <h3 className="text-[14px] font-semibold tracking-tight">Referral link</h3>
                 <p className="text-[12px] text-[#86868b] font-mono truncate">{referralLink}</p>
               </div>
             </div>

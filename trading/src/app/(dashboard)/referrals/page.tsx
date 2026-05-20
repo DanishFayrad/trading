@@ -96,7 +96,7 @@ export default function ReferralsPage() {
           <div className="w-16 h-16 rounded-3xl bg-[#eef0ff] text-[#5b5bd6] flex items-center justify-center mx-auto mb-6">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
           </div>
-          <h1 className="text-[22px] font-semibold tracking-[-0.02em]">Affiliate <span className="gradient-text">network</span></h1>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em]">Referral <span className="gradient-text">network</span></h1>
           <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">Earn commissions by growing your network</p>
 
           <div className="mt-8 glass-soft rounded-2xl p-6 sm:p-8 text-left">
@@ -198,7 +198,7 @@ export default function ReferralsPage() {
 
       <div className="grid grid-cols-2 gap-3">
           <div className="glass rounded-2xl p-5">
-              <p className="text-[12px] text-[#86868b] font-medium">Affiliate balance</p>
+              <p className="text-[12px] text-[#86868b] font-medium">Referral balance</p>
               <p className="text-[22px] font-semibold tracking-tight mt-1 text-[#15a86b]">{formatPKR(balance)}</p>
               <p className="text-[11px] text-[#86868b] mt-1">Available to withdraw</p>
           </div>
