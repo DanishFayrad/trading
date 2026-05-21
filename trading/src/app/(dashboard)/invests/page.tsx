@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '@/config';
 
 interface Investment {
     _id: string;
@@ -16,7 +17,7 @@ export default function InvestsPage() {
   useEffect(() => {
     const fetchInvestments = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const apiUrl = getApiUrl();
             const token = localStorage.getItem('token');
             const response = await fetch(`${apiUrl}/api/deposits/my`, {
                 headers: { 'Authorization': `Bearer ${token}` }

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '@/config';
 
 interface Deposit {
   _id: string;
@@ -64,11 +65,16 @@ interface PartnerUser {
 }
 
 export default function AdminDashboard() {
-  const [tab, setTab] = useState<'deposits' | 'withdrawals' | 'referrals' | 'partners'>('deposits');
+  const [tab, setTab] = useState<'deposits' | 'withdrawals' | 'referrals' | 'partners' | 'users'>('deposits');
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [referralGroups, setReferralGroups] = useState<ReferralGroup[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [deleteUserConfirm, setDeleteUserConfirm] = useState<any | null>(null);
+  const [editBalanceVal, setEditBalanceVal] = useState('');
   const [partnerUsers, setPartnerUsers] = useState<Record<string, PartnerUser[]>>({});
   const [loadingUsers, setLoadingUsers] = useState<Record<string, boolean>>({});
   const [expandedPartners, setExpandedPartners] = useState<Record<string, boolean>>({});
@@ -89,26 +95,29 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
       const authHeader = { 'Authorization': `Bearer ${token}` };
 
-      const [depRes, withRes, refRes, partRes] = await Promise.all([
+      const [depRes, withRes, refRes, partRes, userRes] = await Promise.all([
           fetch(`${apiUrl}/api/deposits/admin`, { headers: authHeader }),
           fetch(`${apiUrl}/api/withdrawals/admin`, { headers: authHeader }),
           fetch(`${apiUrl}/api/auth/admin/referrals`, { headers: authHeader }),
           fetch(`${apiUrl}/api/auth/admin/partners`, { headers: authHeader }),
+          fetch(`${apiUrl}/api/auth/admin/users`, { headers: authHeader }),
       ]);
 
       const depData = await depRes.json();
       const withData = await withRes.json();
       const refData = await refRes.json();
       const partData = await partRes.json();
+      const userData = await userRes.json();
 
       if (depData.success) setDeposits(depData.data);
       if (withData.success) setWithdrawals(withData.data);
       if (refData.success) setReferralGroups(refData.data);
       if (partData.success) setPartners(partData.data);
+      if (userData.success) setUsersList(userData.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -124,7 +133,7 @@ export default function AdminDashboard() {
   const handleStatusUpdate = async (id: string, type: 'deposits' | 'withdrawals', status: 'approved' | 'rejected') => {
     setActionLoading(`${id}-${status}`);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${apiUrl}/api/${type}/${id}/status`, {
         method: 'PATCH',
@@ -157,7 +166,7 @@ export default function AdminDashboard() {
   const handleDelete = async (id: string, type: 'deposits' | 'withdrawals') => {
     setActionLoading(`${id}-delete`);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${apiUrl}/api/${type}/${id}`, {
         method: 'DELETE',
@@ -189,7 +198,7 @@ export default function AdminDashboard() {
     if (!newPartner.name) return;
     setActionLoading('create-partner');
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${apiUrl}/api/auth/admin/partners`, {
         method: 'POST',
@@ -224,7 +233,7 @@ export default function AdminDashboard() {
   const handleDeletePartner = async (id: string) => {
     setActionLoading(`${id}-delete-partner`);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${apiUrl}/api/auth/admin/partners/${id}`, {
         method: 'DELETE',
@@ -251,6 +260,73 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleEditBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser || editBalanceVal === '') return;
+    setActionLoading('edit-balance');
+    try {
+      const apiUrl = getApiUrl();
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${apiUrl}/api/auth/admin/users/${selectedUser._id}/balance`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ balance: Number(editBalanceVal) })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setModal({
+          show: true,
+          title: 'Balance Updated!',
+          message: `Successfully set balance for ${selectedUser.firstName} to Rs ${Number(editBalanceVal).toLocaleString()}`,
+          type: 'success'
+        });
+        setSelectedUser(null);
+        setEditBalanceVal('');
+        fetchData();
+      } else {
+        setModal({ show: true, title: 'Failed', message: data.message || 'Could not update balance.', type: 'error' });
+      }
+    } catch (error) {
+      console.error(error);
+      setModal({ show: true, title: 'Error', message: 'Something went wrong.', type: 'error' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    setActionLoading(`${id}-delete-user`);
+    try {
+      const apiUrl = getApiUrl();
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${apiUrl}/api/auth/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setModal({
+          show: true,
+          title: 'Deleted',
+          message: 'User and all associated logs have been deleted.',
+          type: 'success'
+        });
+        fetchData();
+      } else {
+        setModal({ show: true, title: 'Failed', message: data.message || 'Could not delete user.', type: 'error' });
+      }
+    } catch (error) {
+      console.error(error);
+      setModal({ show: true, title: 'Error', message: 'Something went wrong.', type: 'error' });
+    } finally {
+      setActionLoading(null);
+      setDeleteUserConfirm(null);
+    }
+  };
+
   const togglePartnerExpand = async (partnerId: string) => {
     if (expandedPartners[partnerId]) {
       setExpandedPartners(prev => ({ ...prev, [partnerId]: false }));
@@ -259,7 +335,7 @@ export default function AdminDashboard() {
 
     setLoadingUsers(prev => ({ ...prev, [partnerId]: true }));
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${apiUrl}/api/auth/admin/partners/${partnerId}/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -294,6 +370,41 @@ export default function AdminDashboard() {
     <div className="space-y-6 pb-20 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-500/10 blob pointer-events-none -z-10"></div>
 
+      {/* Premium Financial Summary Cards */}
+      <div className="grid grid-cols-2 gap-4 animate-rise">
+        <div className="glass rounded-[24px] p-5 relative overflow-hidden border border-white/20">
+          <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-emerald-500/5 rounded-full pointer-events-none"></div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#15a86b] flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+            </div>
+            <span className="text-[12px] text-[#86868b] font-medium">Total Deposits</span>
+          </div>
+          <h3 className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] font-mono tracking-tight">
+            Rs {deposits.filter(d => d.status === 'approved').reduce((sum, d) => sum + d.amount, 0).toLocaleString()}
+          </h3>
+          <p className="text-[11px] text-[#86868b] font-mono mt-0.5">
+            $ {(deposits.filter(d => d.status === 'approved').reduce((sum, d) => sum + d.amount, 0) / 278).toFixed(2)}
+          </p>
+        </div>
+
+        <div className="glass rounded-[24px] p-5 relative overflow-hidden border border-white/20">
+          <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-orange-500/5 rounded-full pointer-events-none"></div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" /></svg>
+            </div>
+            <span className="text-[12px] text-[#86868b] font-medium">Total Withdraws</span>
+          </div>
+          <h3 className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] font-mono tracking-tight">
+            Rs {withdrawals.filter(w => w.status === 'approved').reduce((sum, w) => sum + w.amount, 0).toLocaleString()}
+          </h3>
+          <p className="text-[11px] text-[#86868b] font-mono mt-0.5">
+            $ {(withdrawals.filter(w => w.status === 'approved').reduce((sum, w) => sum + w.amount, 0) / 278).toFixed(2)}
+          </p>
+        </div>
+      </div>
+
       <div className="flex items-center gap-2 mb-2 flex-wrap">
           <button
             onClick={() => setTab('deposits')}
@@ -322,6 +433,13 @@ export default function AdminDashboard() {
             style={tab === 'partners' ? { background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' } : undefined}
           >
               Partners
+          </button>
+          <button
+            onClick={() => setTab('users')}
+            className={`flex-1 min-w-[80px] py-3.5 rounded-xl font-medium text-[14px] transition-all ${tab === 'users' ? 'text-white' : 'btn-ghost'}`}
+            style={tab === 'users' ? { background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' } : undefined}
+          >
+              Users
           </button>
       </div>
 
@@ -479,7 +597,7 @@ export default function AdminDashboard() {
                     );
                 })
             )
-        ) : (
+        ) : tab === 'partners' ? (
             <div className="space-y-5">
                 <div className="flex items-center justify-between">
                     <div>
@@ -599,6 +717,91 @@ export default function AdminDashboard() {
                     })
                 )}
             </div>
+        ) : (
+            <div className="space-y-5">
+                <div className="flex flex-col gap-1">
+                    <h2 className="text-[18px] font-semibold tracking-tight text-[#1d1d1f]">User Management</h2>
+                    <p className="text-[12px] text-[#86868b]">View balances, edit credits, and delete user accounts</p>
+                </div>
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search by name or email..."
+                        className="input-light w-full rounded-xl pl-10 pr-4 py-2.5 text-[13px] font-medium"
+                    />
+                    <svg className="w-4 h-4 text-[#86868b] absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </div>
+
+                <div className="space-y-3">
+                    {usersList.filter(u => {
+                        const q = searchQuery.toLowerCase();
+                        const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+                        const email = (u.email || '').toLowerCase();
+                        return fullName.includes(q) || email.includes(q);
+                    }).length === 0 ? (
+                        <div className="text-center p-10 glass-soft rounded-2xl text-[#86868b] text-[13px]">No users found.</div>
+                    ) : (
+                        usersList.filter(u => {
+                            const q = searchQuery.toLowerCase();
+                            const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+                            const email = (u.email || '').toLowerCase();
+                            return fullName.includes(q) || email.includes(q);
+                        }).map((user) => (
+                            <div key={user._id} className="glass rounded-2xl p-5 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[10px] font-medium bg-[#f5f5f7] text-[#86868b]">
+                                    Joined {new Date(user.createdAt).toLocaleDateString()}
+                                </div>
+                                <div className="flex gap-4 items-start mb-4">
+                                    <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#f97316] flex items-center justify-center font-bold text-[14px] shrink-0 border border-[#e6e6eb]">
+                                        {((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h3 className="text-[14px] font-semibold tracking-tight text-[#1d1d1f] truncate">
+                                            {user.firstName} {user.lastName} {user.role === 'admin' && <span className="text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100 font-semibold align-middle ml-1">Admin</span>}
+                                        </h3>
+                                        <p className="text-[11.5px] text-[#86868b] truncate mb-2">{user.email}</p>
+                                        
+                                        <div className="flex gap-6 mt-1 flex-wrap">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-[#86868b]">Deposited Balance</span>
+                                                <span className="text-[14px] font-semibold text-[#15a86b]">Rs {(user.balance || 0).toLocaleString()}</span>
+                                                <span className="text-[10px] font-mono text-[#86868b]">$ {((user.balance || 0) / 278).toFixed(2)} · Rs {(user.depositedTotal || 0).toLocaleString()} approved</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-[#86868b]">Affiliate Balance</span>
+                                                <span className="text-[14px] font-semibold text-orange-600">Rs {Math.round(user.affiliateBalance || 0).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {user.role !== 'admin' && (
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => {
+                                                setSelectedUser(user);
+                                                setEditBalanceVal(String(user.balance || user.depositedTotal || 0));
+                                            }}
+                                            className="flex-1 btn-ghost py-2 rounded-xl text-[12px] font-medium flex items-center justify-center gap-1.5"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                            Edit Balance
+                                        </button>
+                                        <button
+                                            onClick={() => setDeleteUserConfirm(user)}
+                                            className="w-10 flex items-center justify-center bg-[#f5f5f7] hover:bg-red-50 text-[#86868b] hover:text-red-600 border border-[#e6e6eb] hover:border-red-200 rounded-xl transition-colors"
+                                            title="Delete User"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></svg>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
         )}
       </div>
 
@@ -633,6 +836,88 @@ export default function AdminDashboard() {
                     <button onClick={() => setDeletePartnerConfirm(null)} className="btn-ghost flex-1 py-3.5 rounded-xl font-medium text-[15px]">Cancel</button>
                     <button onClick={() => handleDeletePartner(deletePartnerConfirm._id)} disabled={actionLoading === `${deletePartnerConfirm._id}-delete-partner`} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3.5 rounded-xl font-medium text-[15px] disabled:opacity-60 transition-colors">
                         {actionLoading === `${deletePartnerConfirm._id}-delete-partner` ? 'Deleting...' : 'Delete'}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {selectedUser && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 bg-black/30 backdrop-blur-sm pb-[92px] pt-[80px]">
+            <div className="glass rounded-[24px] p-5 sm:p-6 max-w-md w-full relative max-h-[calc(100vh-200px)] flex flex-col overflow-hidden">
+                <button onClick={() => setSelectedUser(null)} className="absolute top-4 right-4 p-2 text-[#aeaeb5] hover:text-[#1d1d1f] transition-colors rounded-lg hover:bg-[#f5f5f7] z-10">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                <div className="mb-4 shrink-0">
+                    <h3 className="text-[18px] font-semibold tracking-tight text-[#1d1d1f]">Edit Deposited Balance</h3>
+                    <p className="text-[11px] text-[#86868b] mt-0.5">This is the user's deposited/invested balance shown on their dashboard for {selectedUser.firstName} {selectedUser.lastName}</p>
+                </div>
+                <form onSubmit={handleEditBalance} className="space-y-4 overflow-y-auto pr-1 flex-1 pb-2">
+                    <div>
+                        <label className="block text-[11px] font-medium text-[#515159] mb-1 px-1">User Email</label>
+                        <div className="bg-[#f5f5f7] px-3.5 py-2.5 rounded-xl text-[13px] font-mono text-[#86868b] select-all truncate border border-[#e6e6eb]">
+                            {selectedUser.email}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-[11px] font-medium text-[#515159] mb-1 px-1">New Balance (PKR) *</label>
+                        <input
+                            type="number"
+                            value={editBalanceVal}
+                            onChange={(e) => setEditBalanceVal(e.target.value)}
+                            className="input-light w-full rounded-xl px-3.5 py-2.5 text-[13px] font-medium"
+                            placeholder="Enter balance in PKR"
+                            required
+                            min="0"
+                        />
+                        <p className="text-[11px] text-[#86868b] mt-1.5 font-mono px-1">
+                            Estimated USD: <span className="text-[#15a86b] font-semibold">$ {editBalanceVal && !isNaN(Number(editBalanceVal)) ? (Number(editBalanceVal) / 278).toFixed(2) : '0.00'}</span>
+                        </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#eef0ff] border border-[#dadcff]">
+                        <div className="min-w-0">
+                            <p className="text-[10px] text-[#86868b]">Approved deposits total</p>
+                            <p className="text-[14px] font-semibold text-[#5b5bd6]">Rs {(selectedUser.depositedTotal || 0).toLocaleString()}</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setEditBalanceVal(String(selectedUser.depositedTotal || 0))}
+                            className="btn-ghost shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium"
+                        >
+                            Set to deposited
+                        </button>
+                    </div>
+                    <div className="flex gap-3 pt-2 shrink-0">
+                        <button type="button" onClick={() => setSelectedUser(null)} className="btn-ghost flex-1 py-2.5 rounded-xl font-medium text-[13px]">Cancel</button>
+                        <button type="submit" disabled={actionLoading === 'edit-balance'} className="flex-1 text-white font-medium text-[13px] py-2.5 rounded-xl flex items-center justify-center animate-pulse-soft" style={{ background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 6px 16px -4px rgba(249,115,22,0.4)' }}>
+                            {actionLoading === 'edit-balance' ? 'Updating...' : 'Update Balance'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {deleteUserConfirm && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/30 backdrop-blur-sm pb-[92px] pt-[80px]">
+            <div className="glass rounded-3xl p-8 max-w-sm w-full text-center max-h-[80vh] overflow-y-auto">
+                <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center bg-red-50 text-red-600">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></svg>
+                </div>
+                <h3 className="text-[18px] font-semibold tracking-tight text-[#1d1d1f] mb-2">Delete User Account?</h3>
+                <p className="text-[#86868b] text-[13px] mb-4">
+                    Are you sure you want to delete <span className="font-semibold text-[#1d1d1f]">{deleteUserConfirm.firstName} {deleteUserConfirm.lastName}</span> ({deleteUserConfirm.email})?
+                </p>
+                <div className="p-3 bg-red-50 border border-red-100 rounded-xl mb-6 text-left">
+                    <span className="text-[11px] font-semibold text-red-700 block mb-1">⚠️ CRITICAL WARNING:</span>
+                    <span className="text-[10.5px] text-red-600 leading-relaxed block">
+                        This will permanently delete the user and **permanently wipe all associated deposits, withdrawals, and affiliate commissions**. This action is irreversible.
+                    </span>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={() => setDeleteUserConfirm(null)} className="btn-ghost flex-1 py-3.5 rounded-xl font-medium text-[15px]">Cancel</button>
+                    <button onClick={() => handleDeleteUser(deleteUserConfirm._id)} disabled={actionLoading === `${deleteUserConfirm._id}-delete-user`} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3.5 rounded-xl font-medium text-[15px] disabled:opacity-60 transition-colors">
+                        {actionLoading === `${deleteUserConfirm._id}-delete-user` ? 'Deleting...' : 'Delete User'}
                     </button>
                 </div>
             </div>

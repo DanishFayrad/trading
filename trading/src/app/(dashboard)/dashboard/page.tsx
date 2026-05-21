@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/config';
 
 export default function DashboardPage() {
   const [timeLeft, setTimeLeft] = useState('00 : 00 : 00');
@@ -21,49 +22,49 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setOrigin(window.location.origin);
-    const fetchAffiliate = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        const res = await fetch(`${apiUrl}/api/auth/affiliate`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          setSuccessfulReferrals(data.data.successfulReferrals || 0);
-          setReferralsThreshold(data.data.referralsThreshold || 10);
-          setFastWithdrawalEligible(!!data.data.fastWithdrawalEligible);
-        }
-      } catch {}
-    };
-    fetchAffiliate();
   }, []);
 
   const cacheKey = (userId: string) => `mining-stats-${userId}`;
 
   const fetchUserStats = async (userId?: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/deposits/my`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
+      if (!token) return;
+      const authHeader = { 'Authorization': `Bearer ${token}` };
 
-      if (data.success) {
-        const approvedDeposits = data.data.filter((d: any) => d.status === 'approved');
-        const total = approvedDeposits.reduce((acc: number, d: any) => acc + (Number(d.amount) || 0), 0);
-        setTotalInvested(total / 278);
+      const [depRes, affRes] = await Promise.all([
+        fetch(`${apiUrl}/api/deposits/my`, { headers: authHeader }),
+        fetch(`${apiUrl}/api/auth/affiliate`, { headers: authHeader })
+      ]);
+      const depData = await depRes.json();
+      const affData = await affRes.json();
 
-        if (total > 0) {
-          setMiningActive(true);
-          setActiveDeposits(approvedDeposits);
-          if (userId) {
-            localStorage.setItem(cacheKey(userId), JSON.stringify({
-              totalInvested: total / 278,
-              activeDeposits: approvedDeposits
-            }));
+      if (affData.success) {
+        setSuccessfulReferrals(affData.data.successfulReferrals || 0);
+        setReferralsThreshold(affData.data.referralsThreshold || 10);
+        setFastWithdrawalEligible(!!affData.data.fastWithdrawalEligible);
+        
+        const mainBalance = affData.data.mainBalance || 0;
+        setTotalInvested(mainBalance / 278);
+
+        if (depData.success) {
+          const approvedDeposits = depData.data.filter((d: any) => d.status === 'approved');
+          if (mainBalance > 0) {
+            setMiningActive(true);
+            setActiveDeposits(approvedDeposits);
+            if (userId) {
+              localStorage.setItem(cacheKey(userId), JSON.stringify({
+                totalInvested: mainBalance / 278,
+                activeDeposits: approvedDeposits
+              }));
+            }
+          } else {
+            setMiningActive(false);
+            setActiveDeposits([]);
+            if (userId) {
+              localStorage.removeItem(cacheKey(userId));
+            }
           }
         }
       }
@@ -146,7 +147,7 @@ export default function DashboardPage() {
 
   const fetchAdminStats = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${apiUrl}/api/deposits/admin`, {
         headers: { 'Authorization': `Bearer ${token}` }

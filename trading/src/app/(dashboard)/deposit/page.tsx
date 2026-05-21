@@ -1,6 +1,7 @@
 "use client";
 import React, { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { getApiUrl } from '@/config';
 
 function DepositContent() {
   const searchParams = useSearchParams();
@@ -42,7 +43,7 @@ function DepositContent() {
     setLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('token');
 
       const body = new FormData();

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getApiUrl } from '@/config';
 
 export default function WithdrawalPage() {
   const [method, setMethod] = useState('easypaisa');
@@ -16,7 +17,7 @@ export default function WithdrawalPage() {
   const [referralsThreshold, setReferralsThreshold] = useState(10);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const apiUrl = getApiUrl();
     const token = localStorage.getItem('token');
     if (!token) return;
     const authHeader = { 'Authorization': `Bearer ${token}` };
@@ -29,11 +30,8 @@ export default function WithdrawalPage() {
             ]);
             const depData = await depRes.json();
             const affData = await affRes.json();
-            if (depData.success) {
-                const total = depData.data.filter((d: any) => d.status === 'approved').reduce((acc: number, d: any) => acc + d.amount, 0);
-                setBalance(total);
-            }
             if (affData.success) {
+                setBalance(affData.data.mainBalance || 0);
                 setFastWithdrawalEligible(!!affData.data.fastWithdrawalEligible);
                 setSuccessfulReferrals(affData.data.successfulReferrals || 0);
                 setReferralsThreshold(affData.data.referralsThreshold || 10);
@@ -59,7 +57,7 @@ export default function WithdrawalPage() {
 
     setLoading(true);
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const apiUrl = getApiUrl();
         const token = localStorage.getItem('token');
         const response = await fetch(`${apiUrl}/api/withdrawals`, {
             method: 'POST',

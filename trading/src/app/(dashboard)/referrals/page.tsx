@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '@/config';
 
 interface Referral {
     _id: string;
@@ -42,7 +43,7 @@ export default function ReferralsPage() {
         setReferralCode(user.referralCode || 'NOT_FOUND');
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const apiUrl = getApiUrl();
     const token = localStorage.getItem('token');
     const authHeader = { 'Authorization': `Bearer ${token}` };
 
