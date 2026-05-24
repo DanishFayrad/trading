@@ -8,6 +8,7 @@ import { getApiUrl } from '@/config';
 function RegisterForm() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
+  
   const [referralCode, setReferralCode] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
