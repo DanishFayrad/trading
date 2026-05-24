@@ -44,18 +44,20 @@ export default function DashboardPage() {
         setSuccessfulReferrals(affData.data.successfulReferrals || 0);
         setReferralsThreshold(affData.data.referralsThreshold || 10);
         setFastWithdrawalEligible(!!affData.data.fastWithdrawalEligible);
-        
-        const mainBalance = affData.data.mainBalance || 0;
-        setTotalInvested(mainBalance / 278);
 
         if (depData.success) {
           const approvedDeposits = depData.data.filter((d: any) => d.status === 'approved');
-          if (mainBalance > 0) {
+          // Use sum of approved deposits (not user.balance which decreases on withdrawal)
+          const approvedTotal = approvedDeposits.reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
+          const investedUsd = approvedTotal / 278;
+          setTotalInvested(investedUsd);
+
+          if (approvedTotal > 0) {
             setMiningActive(true);
             setActiveDeposits(approvedDeposits);
             if (userId) {
               localStorage.setItem(cacheKey(userId), JSON.stringify({
-                totalInvested: mainBalance / 278,
+                totalInvested: investedUsd,
                 activeDeposits: approvedDeposits
               }));
             }
