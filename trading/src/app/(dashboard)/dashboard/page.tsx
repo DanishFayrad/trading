@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/config';
+import PackageSlider from '@/components/PackageSlider';
 
 export default function DashboardPage() {
   const [timeLeft, setTimeLeft] = useState('00 : 00 : 00');
@@ -451,6 +452,9 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
+
+          {/* Investment packages slider */}
+          <PackageSlider />
         </>
       )}
 

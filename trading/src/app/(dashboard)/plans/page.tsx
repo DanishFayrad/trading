@@ -1,45 +1,6 @@
 "use client";
-import React from 'react';
 import Link from 'next/link';
-
-const plans = [
-    {
-        name: "Bronze Node",
-        price: 50,
-        roi: "1.5% Daily",
-        hash: "500 GH/s",
-        duration: "30 Days",
-        color: "from-orange-400 to-orange-600",
-        shadow: "shadow-orange-200"
-    },
-    {
-        name: "Silver Node",
-        price: 200,
-        roi: "2.5% Daily",
-        hash: "2200 GH/s",
-        duration: "45 Days",
-        color: "from-slate-400 to-slate-600",
-        shadow: "shadow-slate-200"
-    },
-    {
-        name: "Gold Node",
-        price: 500,
-        roi: "3.5% Daily",
-        hash: "6000 GH/s",
-        duration: "60 Days",
-        color: "from-yellow-400 to-yellow-600",
-        shadow: "shadow-yellow-200"
-    },
-    {
-        name: "Titan Node",
-        price: 1500,
-        roi: "5.0% Daily",
-        hash: "20000 GH/s",
-        duration: "90 Days",
-        color: "from-blue-600 to-indigo-700",
-        shadow: "shadow-blue-200"
-    }
-];
+import { plans, planReturns, PKR_PER_USD } from '@/data/plans';
 
 export default function PlansPage() {
   return (
@@ -54,12 +15,14 @@ export default function PlansPage() {
                 Scalable Infrastructure
             </div>
             <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1d1d1f]">Mining <span className="gradient-text">Hardware</span></h1>
-            <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1">Deploy high-performance nodes</p>
+            <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1">Deploy a node and earn up to 10% daily over a 30-day cycle</p>
         </div>
 
         <div className="grid grid-cols-1 gap-6">
             {plans.map((plan, i) => {
                 const featured = plan.name === 'Titan Node';
+                const { dailyPkr, totalPkr, dailyUsd, totalUsd, dailyRoi } = planReturns(plan);
+
                 return (
                 <div
                     key={i}
@@ -76,9 +39,9 @@ export default function PlansPage() {
                             <div>
                                 <h3 className={`text-[15px] font-semibold tracking-tight ${featured ? 'text-white' : 'text-[#1d1d1f]'}`}>{plan.name}</h3>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-[12px] ${featured ? 'text-white/80' : 'text-[#5b5bd6]'}`}>{plan.roi} Yield</span>
+                                    <span className={`text-[12px] ${featured ? 'text-white/80' : 'text-[#5b5bd6]'}`}>{dailyRoi}% Daily Yield</span>
                                     <span className={`w-1 h-1 rounded-full ${featured ? 'bg-white/40' : 'bg-[#d8d8df]'}`}></span>
-                                    <span className={`text-[12px] ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>{plan.duration} Cycle</span>
+                                    <span className={`text-[12px] ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>{plan.duration}-Day Cycle</span>
                                 </div>
                             </div>
                         </div>
@@ -86,11 +49,11 @@ export default function PlansPage() {
                         <div className="flex items-center gap-8">
                             <div className="text-right">
                                 <p className={`text-[12px] mb-1 ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Price Point</p>
-                                <p className={`text-[22px] font-semibold font-mono ${featured ? 'text-white' : 'text-[#1d1d1f]'}`}>${plan.price}</p>
-                                <p className={`text-[12px] font-mono ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Rs {(plan.price * 278).toLocaleString()}</p>
+                                <p className={`text-[22px] font-semibold font-mono ${featured ? 'text-white' : 'text-[#1d1d1f]'}`}>Rs {plan.price.toLocaleString()}</p>
+                                <p className={`text-[12px] font-mono ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>${(plan.price / PKR_PER_USD).toFixed(2)}</p>
                             </div>
                             <Link
-                                href={`/deposit?amount=${plan.price * 278}&plan=${plan.name}`}
+                                href={`/deposit?amount=${plan.price}&plan=${encodeURIComponent(plan.name)}`}
                                 className={`px-8 py-3.5 font-medium rounded-xl transition-all duration-300 flex items-center gap-3 group/btn ${featured ? 'bg-white text-[#5b5bd6] hover:bg-white/90' : 'btn-primary'}`}
                             >
                                 Deploy
@@ -105,16 +68,14 @@ export default function PlansPage() {
                             <p className={`text-[13px] font-semibold tracking-tight ${featured ? 'text-white' : 'text-[#1d1d1f]'}`}>{plan.hash}</p>
                         </div>
                         <div className={`text-center border-x ${featured ? 'border-white/20' : 'border-[#e6e6eb]'}`}>
-                            <p className={`text-[12px] mb-1 ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Daily Accrual</p>
-                            <p className={`text-[13px] font-semibold tracking-tight ${featured ? 'text-white' : 'text-[#5b5bd6]'}`}>~${(plan.price * parseFloat(plan.roi) / 100).toFixed(2)}</p>
-                            <p className={`text-[11px] ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Rs {((plan.price * parseFloat(plan.roi) / 100) * 278).toFixed(2)}</p>
+                            <p className={`text-[12px] mb-1 ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Daily Profit</p>
+                            <p className={`text-[13px] font-semibold tracking-tight font-mono ${featured ? 'text-white' : 'text-[#5b5bd6]'}`}>Rs {dailyPkr.toLocaleString()}</p>
+                            <p className={`text-[11px] font-mono ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>${dailyUsd.toFixed(2)}</p>
                         </div>
                         <div className="text-center">
-                            <p className={`text-[12px] mb-1 ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Node Status</p>
-                            <div className="flex items-center justify-center gap-1.5">
-                                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${featured ? 'bg-white' : 'bg-[#15a86b]'}`}></div>
-                                <p className={`text-[12px] ${featured ? 'text-white' : 'text-[#15a86b]'}`}>Optimized</p>
-                            </div>
+                            <p className={`text-[12px] mb-1 ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>Total Return ({plan.duration}d)</p>
+                            <p className={`text-[13px] font-semibold tracking-tight font-mono ${featured ? 'text-white' : 'text-[#15a86b]'}`}>Rs {totalPkr.toLocaleString()}</p>
+                            <p className={`text-[11px] font-mono ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>${totalUsd.toFixed(2)}</p>
                         </div>
                     </div>
                 </div>
