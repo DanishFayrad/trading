@@ -196,17 +196,25 @@ export default function AdminDashboard() {
   const handleStatusUpdate = async (id: string, type: 'deposits' | 'withdrawals', status: 'approved' | 'rejected') => {
     setActionLoading(`${id}-${status}`);
     try {
-      const updates: any = { status };
-      if (status === 'approved' && type === 'deposits') {
-        updates.approved_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
+      let { error } = await supabase
         .from(type)
-        .update(updates)
+        .update({ status, ...(status === 'approved' && type === 'deposits' ? { approved_at: new Date().toISOString() } : {}) })
         .eq('id', id);
 
+      if (error && error.message?.includes('approved_at')) {
+        // Fallback without approved_at if column is missing
+        const retry = await supabase.from(type).update({ status }).eq('id', id);
+        error = retry.error;
+      }
+
       if (error) throw error;
+
+      // Optimistically update local state so it updates immediately on screen
+      if (type === 'deposits') {
+        setDeposits(prev => prev.map(d => d._id === id ? { ...d, status } : d));
+      } else {
+        setWithdrawals(prev => prev.map(w => w._id === id ? { ...w, status } : w));
+      }
 
       setModal({
         show: true,
@@ -214,7 +222,7 @@ export default function AdminDashboard() {
         message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been ${status} successfully.`,
         type: 'success'
       });
-      fetchData();
+      fetchData(true);
     } catch (error: unknown) {
       console.error(error);
       const msg = error instanceof Error ? error.message : 'Action could not be performed.';
