@@ -156,7 +156,14 @@ export default function DashboardPage() {
     fetchUserStats(userObj.id);
   }, []);
 
-  const userRefCode = user?.referralCode || (user?.id ? user.id.replace(/-/g, '').slice(0, 8).toUpperCase()) || (user?.email ? user.email.split('@')[0].toUpperCase() : 'PRIMEPRO');
+  const getUserReferralCode = (): string => {
+    if (user?.referralCode) return user.referralCode;
+    if (user?.id) return user.id.replace(/-/g, '').slice(0, 8).toUpperCase();
+    if (user?.email) return user.email.split('@')[0].toUpperCase();
+    return 'PRIMEPRO';
+  };
+
+  const userRefCode = getUserReferralCode();
   const currentOrigin = origin || (typeof window !== 'undefined' ? window.location.origin : 'https://theprimeinvestpro.com');
   const referralLink = `${currentOrigin}/register?ref=${userRefCode}`;
 
