@@ -196,20 +196,25 @@ export default function AdminDashboard() {
   const handleStatusUpdate = async (id: string, type: 'deposits' | 'withdrawals', status: 'approved' | 'rejected') => {
     setActionLoading(`${id}-${status}`);
     try {
-      let { error } = await supabase
-        .from(type)
-        .update({ status, ...(status === 'approved' && type === 'deposits' ? { approved_at: new Date().toISOString() } : {}) })
-        .eq('id', id);
-
-      if (error && error.message?.includes('approved_at')) {
-        // Fallback without approved_at if column is missing
-        const retry = await supabase.from(type).update({ status }).eq('id', id);
-        error = retry.error;
+      let updatePayload: Record<string, any> = { status };
+      if (status === 'approved' && type === 'deposits') {
+        updatePayload.approved_at = new Date().toISOString();
       }
 
-      if (error) throw error;
+      let res = await supabase
+        .from(type)
+        .update(updatePayload)
+        .eq('id', id)
+        .select();
 
-      // Optimistically update local state so it updates immediately on screen
+      if (res.error && res.error.message?.includes('approved_at')) {
+        // Fallback without approved_at
+        res = await supabase.from(type).update({ status }).eq('id', id).select();
+      }
+
+      if (res.error) throw res.error;
+
+      // Update state
       if (type === 'deposits') {
         setDeposits(prev => prev.map(d => d._id === id ? { ...d, status } : d));
       } else {
@@ -219,14 +224,14 @@ export default function AdminDashboard() {
       setModal({
         show: true,
         title: status === 'approved' ? 'Approved!' : 'Rejected!',
-        message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been ${status} successfully.`,
+        message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} status updated to "${status}".`,
         type: 'success'
       });
       fetchData(true);
     } catch (error: unknown) {
       console.error(error);
       const msg = error instanceof Error ? error.message : 'Action could not be performed.';
-      setModal({ show: true, title: 'Error', message: msg, type: 'error' });
+      setModal({ show: true, title: 'Error Updating', message: msg, type: 'error' });
     } finally {
       setActionLoading(null);
     }
@@ -242,17 +247,23 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
+      if (type === 'deposits') {
+        setDeposits(prev => prev.filter(d => d._id !== id));
+      } else {
+        setWithdrawals(prev => prev.filter(w => w._id !== id));
+      }
+
       setModal({
         show: true,
         title: 'Deleted',
-        message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been deleted.`,
+        message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been deleted permanently.`,
         type: 'success'
       });
-      fetchData();
+      fetchData(true);
     } catch (error: unknown) {
       console.error(error);
       const msg = error instanceof Error ? error.message : 'Could not delete.';
-      setModal({ show: true, title: 'Error', message: msg, type: 'error' });
+      setModal({ show: true, title: 'Error Deleting', message: msg, type: 'error' });
     } finally {
       setActionLoading(null);
       setDeleteConfirm(null);
