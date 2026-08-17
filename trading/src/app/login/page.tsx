@@ -31,6 +31,7 @@ export default function LoginPage() {
       } else if (data.session) {
         localStorage.setItem('token', data.session.access_token);
         const metadata = data.user?.user_metadata || {};
+        const isAdmin = metadata.role === 'admin' || data.user?.email === 'admin60@primeinvestpro.com';
         const userRefCode = metadata.referral_code || (data.user?.id ? data.user.id.replace(/-/g, '').slice(0, 8).toUpperCase() : 'PRIMEPRO');
         localStorage.setItem('user', JSON.stringify({
           id: data.user?.id,

@@ -66,6 +66,18 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchAdminStats = async () => {
+    try {
+      const { count } = await supabase
+        .from('deposits')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      setAdminStats({ pendingCount: count || 0 });
+    } catch (e) {
+      console.error("Admin stats error:", e);
+    }
+  };
+
   useEffect(() => {
     // ONLY start the live counter if deposit is approved AND at least 1 puzzle task is solved today!
     if (!miningActive || totalInvested <= 0 || activeTaskCount === 0) {
