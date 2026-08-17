@@ -135,12 +135,25 @@ function DepositContent() {
                   <p className="text-[12px] sm:text-[13px] text-[#86868b]">Send payment to the details below</p>
                 </div>
 
-                <div className="bg-white border border-[#e6e6eb] rounded-xl p-6 mb-6 flex justify-between items-center relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full" style={{ background: 'linear-gradient(#5b5bd6, #7c5cdb)' }}></div>
+                <div className="bg-white border border-[#e6e6eb] rounded-2xl p-6 mb-6 flex justify-between items-center relative overflow-hidden shadow-sm">
+                  <div className="absolute top-0 left-0 w-1.5 h-full" style={{ background: 'linear-gradient(#ea580c, #f97316)' }}></div>
                   <div className="flex-1 text-center">
-                    <p className="text-[12px] text-[#86868b] mb-1">Jazz Cash number</p>
-                    <h2 className="text-[22px] font-semibold gradient-text tracking-wide font-mono">03205805955</h2>
-                    <p className="text-[12px] text-[#86868b] mt-1">Haleema Bibi</p>
+                    <p className="text-[12px] text-[#86868b] mb-1 font-medium">JazzCash Account Number</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <h2 className="text-[24px] font-bold text-[#1d1d1f] tracking-wider font-mono select-all">03234163559</h2>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText('03234163559');
+                          showToast('Account number copied!', 'success');
+                        }}
+                        className="p-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
+                        title="Copy Number"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      </button>
+                    </div>
+                    <p className="text-[13px] font-semibold text-orange-600 mt-1">Haseena bibi</p>
                   </div>
                 </div>
 
