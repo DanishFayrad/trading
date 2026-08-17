@@ -117,6 +117,30 @@ export default function AdminDashboard() {
             email: d.user_id || 'Registered user'
           }
         })));
+
+        // Populate usersList from depositors
+        const uniqueUsersMap = new Map();
+        depData.forEach((d: any) => {
+          const uid = d.user_id || d.id;
+          if (!uniqueUsersMap.has(uid)) {
+            uniqueUsersMap.set(uid, {
+              _id: uid,
+              firstName: d.plan_name || 'Investor',
+              lastName: '',
+              email: d.user_id || 'Investor Account',
+              balance: Number(d.amount),
+              depositedTotal: Number(d.amount),
+              affiliateBalance: 0,
+              createdAt: d.created_at,
+              role: 'user'
+            });
+          } else {
+            const existing = uniqueUsersMap.get(uid);
+            existing.balance += Number(d.amount);
+            existing.depositedTotal += Number(d.amount);
+          }
+        });
+        setUsersList(Array.from(uniqueUsersMap.values()));
       }
 
       // 2. Fetch withdrawals from Supabase
