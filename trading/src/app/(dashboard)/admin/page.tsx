@@ -455,37 +455,75 @@ export default function AdminDashboard() {
       </div>
 
       {/* Premium Financial Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 animate-rise">
-        <div className="glass rounded-[24px] p-5 relative overflow-hidden border border-white/20">
-          <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-emerald-500/5 rounded-full pointer-events-none"></div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#15a86b] flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-rise">
+        {/* Total Deposits Card */}
+        <div className="glass rounded-[24px] p-5 relative overflow-hidden border border-white/20 shadow-sm">
+          <div className="absolute -right-8 -bottom-8 w-28 h-28 bg-emerald-500/10 rounded-full pointer-events-none blur-xl"></div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#15a86b] flex items-center justify-center shadow-inner">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+              </div>
+              <div>
+                <span className="text-[13px] text-[#86868b] font-medium block">Total Deposits</span>
+                <span className="text-[11px] text-[#15a86b] font-semibold">{deposits.length} {deposits.length === 1 ? 'record' : 'records'}</span>
+              </div>
             </div>
-            <span className="text-[12px] text-[#86868b] font-medium">Total Deposits</span>
+            <span className="text-[11px] font-mono text-[#86868b] bg-white/70 px-2.5 py-1 rounded-lg border border-[#e6e6eb]">
+              $ {(deposits.reduce((sum, d) => sum + (Number(d.amount) || 0), 0) / 278).toFixed(2)}
+            </span>
           </div>
-          <h3 className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] font-mono tracking-tight">
-            Rs {deposits.filter(d => d.status === 'approved').reduce((sum, d) => sum + d.amount, 0).toLocaleString()}
+
+          <h3 className="text-[24px] sm:text-[28px] font-bold text-[#1d1d1f] font-mono tracking-tight mb-2">
+            Rs {deposits.reduce((sum, d) => sum + (Number(d.amount) || 0), 0).toLocaleString()}
           </h3>
-          <p className="text-[11px] text-[#86868b] font-mono mt-0.5">
-            $ {(deposits.filter(d => d.status === 'approved').reduce((sum, d) => sum + d.amount, 0) / 278).toFixed(2)}
-          </p>
+
+          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[#f0f0f5]">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
+              Approved: Rs {deposits.filter(d => d.status === 'approved').reduce((sum, d) => sum + (Number(d.amount) || 0), 0).toLocaleString()}
+            </span>
+            {deposits.filter(d => d.status === 'pending').length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                Pending: Rs {deposits.filter(d => d.status === 'pending').reduce((sum, d) => sum + (Number(d.amount) || 0), 0).toLocaleString()} ({deposits.filter(d => d.status === 'pending').length})
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="glass rounded-[24px] p-5 relative overflow-hidden border border-white/20">
-          <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-orange-500/5 rounded-full pointer-events-none"></div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" /></svg>
+        {/* Total Withdrawals Card */}
+        <div className="glass rounded-[24px] p-5 relative overflow-hidden border border-white/20 shadow-sm">
+          <div className="absolute -right-8 -bottom-8 w-28 h-28 bg-orange-500/10 rounded-full pointer-events-none blur-xl"></div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shadow-inner">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" /></svg>
+              </div>
+              <div>
+                <span className="text-[13px] text-[#86868b] font-medium block">Total Withdrawals</span>
+                <span className="text-[11px] text-orange-600 font-semibold">{withdrawals.length} {withdrawals.length === 1 ? 'record' : 'records'}</span>
+              </div>
             </div>
-            <span className="text-[12px] text-[#86868b] font-medium">Total Withdraws</span>
+            <span className="text-[11px] font-mono text-[#86868b] bg-white/70 px-2.5 py-1 rounded-lg border border-[#e6e6eb]">
+              $ {(withdrawals.reduce((sum, w) => sum + (Number(w.amount) || 0), 0) / 278).toFixed(2)}
+            </span>
           </div>
-          <h3 className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] font-mono tracking-tight">
-            Rs {withdrawals.filter(w => w.status === 'approved').reduce((sum, w) => sum + w.amount, 0).toLocaleString()}
+
+          <h3 className="text-[24px] sm:text-[28px] font-bold text-[#1d1d1f] font-mono tracking-tight mb-2">
+            Rs {withdrawals.reduce((sum, w) => sum + (Number(w.amount) || 0), 0).toLocaleString()}
           </h3>
-          <p className="text-[11px] text-[#86868b] font-mono mt-0.5">
-            $ {(withdrawals.filter(w => w.status === 'approved').reduce((sum, w) => sum + w.amount, 0) / 278).toFixed(2)}
-          </p>
+
+          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[#f0f0f5]">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
+              Approved: Rs {withdrawals.filter(w => w.status === 'approved').reduce((sum, w) => sum + (Number(w.amount) || 0), 0).toLocaleString()}
+            </span>
+            {withdrawals.filter(w => w.status === 'pending').length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                Pending: Rs {withdrawals.filter(w => w.status === 'pending').reduce((sum, w) => sum + (Number(w.amount) || 0), 0).toLocaleString()} ({withdrawals.filter(w => w.status === 'pending').length})
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
