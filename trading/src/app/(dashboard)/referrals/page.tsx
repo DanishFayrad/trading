@@ -36,12 +36,18 @@ export default function ReferralsPage() {
   const [milestoneBonusAmount, setMilestoneBonusAmount] = useState(1000);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    const currentOrigin = window.location.origin;
+    setOrigin(currentOrigin);
     const userStr = localStorage.getItem('user');
+    let code = '';
     if (userStr) {
+      try {
         const user = JSON.parse(userStr);
-        setReferralCode(user.referralCode || 'NOT_FOUND');
+        code = user.referralCode || (user.id ? user.id.replace(/-/g, '').slice(0, 8).toUpperCase() : (user.email ? user.email.split('@')[0].toUpperCase() : 'PRIMEPRO'));
+        setReferralCode(code);
+      } catch {}
     }
+    if (!code) setReferralCode('PRIMEPRO');
 
     const apiUrl = getApiUrl();
     const token = localStorage.getItem('token');
@@ -77,7 +83,9 @@ export default function ReferralsPage() {
 
   const formatPKR = (n: number) => `Rs ${Math.round(n).toLocaleString()}`;
 
-  const referralLink = referralCode !== 'NOT_FOUND' && referralCode !== '' && origin ? `${origin}/register?ref=${referralCode}` : 'Loading...';
+  const currentOrigin = origin || (typeof window !== 'undefined' ? window.location.origin : 'https://theprimeinvestpro.com');
+  const activeCode = referralCode && referralCode !== 'NOT_FOUND' ? referralCode : 'PRIMEPRO';
+  const referralLink = `${currentOrigin}/register?ref=${activeCode}`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(referralLink);

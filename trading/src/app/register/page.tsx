@@ -71,12 +71,14 @@ function RegisterForm() {
       } else {
         if (data.session) {
           localStorage.setItem('token', data.session.access_token);
+          const myRefCode = data.user?.id ? data.user.id.replace(/-/g, '').slice(0, 8).toUpperCase() : 'PRIMEPRO';
           localStorage.setItem('user', JSON.stringify({
             id: data.user?.id,
             email: data.user?.email,
             firstName,
             lastName,
             phone: formData.phone,
+            referralCode: myRefCode,
             role: 'user'
           }));
           setToast({ show: true, message: 'User registered successfully!', type: 'success' });

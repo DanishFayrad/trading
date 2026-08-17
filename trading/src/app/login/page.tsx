@@ -31,13 +31,14 @@ export default function LoginPage() {
       } else if (data.session) {
         localStorage.setItem('token', data.session.access_token);
         const metadata = data.user?.user_metadata || {};
-        const isAdmin = formData.email.toLowerCase() === 'admin60@primeinvestpro.com' || metadata.role === 'admin';
+        const userRefCode = metadata.referral_code || (data.user?.id ? data.user.id.replace(/-/g, '').slice(0, 8).toUpperCase() : 'PRIMEPRO');
         localStorage.setItem('user', JSON.stringify({
           id: data.user?.id,
           email: data.user?.email,
           firstName: metadata.first_name || (isAdmin ? 'Admin' : ''),
           lastName: metadata.last_name || '',
           phone: metadata.phone || '',
+          referralCode: userRefCode,
           role: isAdmin ? 'admin' : (metadata.role || 'user')
         }));
         setToast({ show: true, message: 'Logged in successfully!', type: 'success' });

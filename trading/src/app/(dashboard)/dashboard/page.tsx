@@ -115,8 +115,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
-    if (!userStr) return;
-    const userObj = JSON.parse(userStr);
+    let userObj: any = null;
+    if (userStr) {
+      try {
+        userObj = JSON.parse(userStr);
+      } catch {}
+    }
+
+    if (!userObj) {
+      userObj = { role: 'user' };
+    }
+
+    // Auto-generate unique consistent referral code if missing
+    if (!userObj.referralCode) {
+      const code = userObj.id ? userObj.id.replace(/-/g, '').slice(0, 8).toUpperCase() : (userObj.email ? userObj.email.split('@')[0].toUpperCase() : 'PRIMEPRO');
+      userObj.referralCode = code;
+      localStorage.setItem('user', JSON.stringify(userObj));
+    }
     setUser(userObj);
 
     if (userObj.role === 'admin' || userObj.email === 'admin60@primeinvestpro.com') {
@@ -141,79 +156,29 @@ export default function DashboardPage() {
     fetchUserStats(userObj.id);
   }, []);
 
-  const fetchAdminStats = async () => {
-    try {
-      const { data } = await supabase.from('deposits').select('*').eq('status', 'pending');
-      setAdminStats({ pendingCount: data?.length || 0 });
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const investTime = localStorage.getItem('investmentTime');
-      if (!investTime) {
-        setIsInvested(false);
-        return '00 : 00 : 00';
-      }
-
-      setIsInvested(true);
-      const startTime = parseInt(investTime, 10);
-      // 24 hours in milliseconds
-      const cycleDuration = 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      const elapsed = now - startTime;
-
-      if (elapsed >= cycleDuration) {
-        // Cycle finished
-        return '00 : 00 : 00';
-      }
-
-      const remaining = cycleDuration - elapsed;
-      const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((remaining / 1000 / 60) % 60);
-      const seconds = Math.floor((remaining / 1000) % 60);
-
-      return `${hours.toString().padStart(2, '0')} : ${minutes.toString().padStart(2, '0')} : ${seconds.toString().padStart(2, '0')}`;
-    };
-
-    // Initial calculation
-    setTimeLeft(calculateTimeLeft());
-
-    // Update every second
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const referralLink = user?.referralCode && origin ? `${origin}/register?ref=${user.referralCode}` : 'Loading...';
+  const userRefCode = user?.referralCode || (user?.id ? user.id.replace(/-/g, '').slice(0, 8).toUpperCase()) || (user?.email ? user.email.split('@')[0].toUpperCase() : 'PRIMEPRO');
+  const currentOrigin = origin || (typeof window !== 'undefined' ? window.location.origin : 'https://theprimeinvestpro.com');
+  const referralLink = `${currentOrigin}/register?ref=${userRefCode}`;
 
   const handleCopy = () => {
-    if (user?.referralCode) {
-      navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async () => {
-    if (user?.referralCode) {
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'Join me on Invest App',
-            text: 'Use my referral link to join!',
-            url: referralLink,
-          });
-        } catch (err) {
-          console.error('Error sharing:', err);
-        }
-      } else {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join primeinvestpro',
+          text: `Join primeinvestpro with my referral link and earn daily AI investment yield!`,
+          url: referralLink,
+        });
+      } catch (err) {
         handleCopy();
       }
+    } else {
+      handleCopy();
     }
   };
 
