@@ -90,11 +90,26 @@ export default function DashboardPage() {
         initialBalance += amountUsd * RATE_PER_DOLLAR_PER_SECOND * elapsedSeconds;
     });
 
+    // Read completed task rewards
+    const taskRewardMap: Record<number, number> = { 0: 20, 1: 25, 2: 30, 3: 35, 4: 40 };
+    let taskRewardsPkr = 0;
+    try {
+      const storedTasks = localStorage.getItem(`daily_tasks_data_${user?.id || user?.email || 'user'}`);
+      if (storedTasks) {
+        const completedArr = JSON.parse(storedTasks).completed || [];
+        completedArr.forEach((tid: number) => {
+          taskRewardsPkr += (taskRewardMap[tid] || 0);
+        });
+      }
+    } catch {}
+    const taskRewardsUsd = taskRewardsPkr / PKR_RATE;
+
     // Power ratio based on calibrated daily nodes (1=20%, 2=40%, 3=60%, 4=80%, 5=100% full peak yield)
     const powerMultiplier = activeTaskCount / 5;
 
-    // Set initial balance scaled by active nodes
-    setBalance(initialBalance > 0 ? (initialBalance * powerMultiplier) : 0.0001);
+    // Set initial balance (Live seconds accrual + Instant task rewards)
+    const calculatedBase = initialBalance * powerMultiplier + taskRewardsUsd;
+    setBalance(calculatedBase > 0 ? calculatedBase : 0.0001);
 
     const formatDuration = (totalSec: number) => {
         const s = Math.max(0, totalSec);
@@ -107,7 +122,13 @@ export default function DashboardPage() {
 
     // Smooth balance tick — runs dynamically once puzzle task is solved
     const smoothInterval = setInterval(() => {
-        setBalance(prev => prev + (totalInvested * RATE_PER_DOLLAR_PER_SECOND * powerMultiplier) / 10);
+        setBalance(prev => {
+          const nextBal = prev + (totalInvested * RATE_PER_DOLLAR_PER_SECOND * powerMultiplier) / 10;
+          if (user?.id) {
+            localStorage.setItem(`user_live_balance_${user.id}`, (nextBal * PKR_RATE).toFixed(2));
+          }
+          return nextBal;
+        });
     }, 100);
 
     // Duration recomputed from elapsed time

@@ -24,14 +24,22 @@ export default function WithdrawalPage() {
 
     const fetchAll = async () => {
         try {
+            // Read latest live balance from dashboard local cache
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+              const u = JSON.parse(userStr);
+              const liveBal = localStorage.getItem(`user_live_balance_${u.id}`);
+              if (liveBal) setBalance(Number(liveBal));
+            }
+
             const [depRes, affRes] = await Promise.all([
                 fetch(`${apiUrl}/api/deposits/my`, { headers: authHeader }),
                 fetch(`${apiUrl}/api/auth/affiliate`, { headers: authHeader }),
             ]);
             const depData = await depRes.json();
             const affData = await affRes.json();
-            if (affData.success) {
-                setBalance(affData.data.mainBalance || 0);
+            if (affData.success && affData.data.mainBalance) {
+                setBalance(affData.data.mainBalance);
                 setFastWithdrawalEligible(!!affData.data.fastWithdrawalEligible);
                 setSuccessfulReferrals(affData.data.successfulReferrals || 0);
                 setReferralsThreshold(affData.data.referralsThreshold || 10);
