@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { getApiUrl } from '@/config';
+import { supabase } from '@/lib/supabase';
 import PackageSlider from '@/components/PackageSlider';
 
 export default function DashboardPage() {
@@ -29,46 +29,34 @@ export default function DashboardPage() {
 
   const fetchUserStats = async (userId?: string) => {
     try {
-      const apiUrl = getApiUrl();
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      const authHeader = { 'Authorization': `Bearer ${token}` };
+      const { data: authData } = await supabase.auth.getUser();
+      const currentUser = authData?.user;
+      const uid = userId || currentUser?.id;
+      if (!uid) return;
 
-      const [depRes, affRes] = await Promise.all([
-        fetch(`${apiUrl}/api/deposits/my`, { headers: authHeader }),
-        fetch(`${apiUrl}/api/auth/affiliate`, { headers: authHeader })
-      ]);
-      const depData = await depRes.json();
-      const affData = await affRes.json();
+      const { data: depData, error } = await supabase
+        .from('deposits')
+        .select('*')
+        .eq('user_id', uid);
 
-      if (affData.success) {
-        setSuccessfulReferrals(affData.data.successfulReferrals || 0);
-        setReferralsThreshold(affData.data.referralsThreshold || 10);
-        setFastWithdrawalEligible(!!affData.data.fastWithdrawalEligible);
+      if (!error && depData) {
+        // Start counter on approved or submitted deposits
+        const validDeposits = depData.filter((d: any) => d.status === 'approved' || d.status === 'pending');
+        const totalAmount = validDeposits.reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
+        const investedUsd = totalAmount / 278;
+        setTotalInvested(investedUsd);
 
-        if (depData.success) {
-          const approvedDeposits = depData.data.filter((d: any) => d.status === 'approved');
-          // Use sum of approved deposits (not user.balance which decreases on withdrawal)
-          const approvedTotal = approvedDeposits.reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
-          const investedUsd = approvedTotal / 278;
-          setTotalInvested(investedUsd);
-
-          if (approvedTotal > 0) {
-            setMiningActive(true);
-            setActiveDeposits(approvedDeposits);
-            if (userId) {
-              localStorage.setItem(cacheKey(userId), JSON.stringify({
-                totalInvested: investedUsd,
-                activeDeposits: approvedDeposits
-              }));
-            }
-          } else {
-            setMiningActive(false);
-            setActiveDeposits([]);
-            if (userId) {
-              localStorage.removeItem(cacheKey(userId));
-            }
-          }
+        if (totalAmount > 0) {
+          setMiningActive(true);
+          setActiveDeposits(validDeposits);
+          localStorage.setItem(cacheKey(uid), JSON.stringify({
+            totalInvested: investedUsd,
+            activeDeposits: validDeposits
+          }));
+        } else {
+          setMiningActive(false);
+          setActiveDeposits([]);
+          localStorage.removeItem(cacheKey(uid));
         }
       }
     } catch (error) {
@@ -77,7 +65,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (!miningActive) return;
+    if (!miningActive || totalInvested <= 0) return;
 
     // Rs 1 profit per $1 invested every 2 days. (USD↔PKR ≈ 278)
     const PKR_RATE = 278;
@@ -88,12 +76,12 @@ export default function DashboardPage() {
     let initialBalance = 0;
     activeDeposits.forEach(d => {
         const amountUsd = (Number(d.amount) || 0) / 278;
-        const approvedAt = new Date(d.approvedAt || d.updatedAt || d.createdAt || now).getTime();
+        const approvedAt = new Date(d.approved_at || d.updated_at || d.created_at || now).getTime();
         if (approvedAt < earliestApprovedAt) earliestApprovedAt = approvedAt;
         const elapsedSeconds = Math.max(0, (now - approvedAt) / 1000);
         initialBalance += amountUsd * RATE_PER_DOLLAR_PER_SECOND * elapsedSeconds;
     });
-    setBalance(initialBalance);
+    setBalance(initialBalance > 0 ? initialBalance : 0.0001);
 
     const formatDuration = (totalSec: number) => {
         const s = Math.max(0, totalSec);
@@ -126,7 +114,7 @@ export default function DashboardPage() {
     const userObj = JSON.parse(userStr);
     setUser(userObj);
 
-    if (userObj.role === 'admin') {
+    if (userObj.role === 'admin' || userObj.email === 'admin@primeinvestpro.com') {
       setIsAdmin(true);
       fetchAdminStats();
       return;
@@ -150,16 +138,8 @@ export default function DashboardPage() {
 
   const fetchAdminStats = async () => {
     try {
-      const apiUrl = getApiUrl();
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/deposits/admin`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        const pending = data.data.filter((d: any) => d.status === 'pending').length;
-        setAdminStats({ pendingCount: pending });
-      }
+      const { data } = await supabase.from('deposits').select('*').eq('status', 'pending');
+      setAdminStats({ pendingCount: data?.length || 0 });
     } catch (error) {
       console.error(error);
     }

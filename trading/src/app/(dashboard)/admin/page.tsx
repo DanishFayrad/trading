@@ -1,10 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '@/config';
+import { supabase } from '@/lib/supabase';
 
 interface Deposit {
   _id: string;
-  user: { firstName: string; lastName: string; email: string; };
+  user?: { firstName: string; lastName: string; email: string; };
   amount: number;
   paymentMethod: string;
   screenshot: string;
@@ -15,7 +15,7 @@ interface Deposit {
 
 interface Withdrawal {
     _id: string;
-    user: { firstName: string; lastName: string; email: string; };
+    user?: { firstName: string; lastName: string; email: string; };
     amount: number;
     paymentMethod: string;
     accountDetails: string;
@@ -95,29 +95,46 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const apiUrl = getApiUrl();
-      const token = localStorage.getItem('token');
-      const authHeader = { 'Authorization': `Bearer ${token}` };
+      // 1. Fetch deposits from Supabase
+      const { data: depData, error: depError } = await supabase
+        .from('deposits')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const [depRes, withRes, refRes, partRes, userRes] = await Promise.all([
-          fetch(`${apiUrl}/api/deposits/admin`, { headers: authHeader }),
-          fetch(`${apiUrl}/api/withdrawals/admin`, { headers: authHeader }),
-          fetch(`${apiUrl}/api/auth/admin/referrals`, { headers: authHeader }),
-          fetch(`${apiUrl}/api/auth/admin/partners`, { headers: authHeader }),
-          fetch(`${apiUrl}/api/auth/admin/users`, { headers: authHeader }),
-      ]);
+      if (!depError && depData) {
+        setDeposits(depData.map((d: any) => ({
+          _id: d.id,
+          amount: Number(d.amount),
+          paymentMethod: d.payment_method,
+          screenshot: d.screenshot,
+          status: d.status,
+          transactionId: d.transaction_id,
+          createdAt: d.created_at,
+          user: {
+            firstName: d.plan_name || 'User',
+            lastName: '',
+            email: d.user_id || 'Registered user'
+          }
+        })));
+      }
 
-      const depData = await depRes.json();
-      const withData = await withRes.json();
-      const refData = await refRes.json();
-      const partData = await partRes.json();
-      const userData = await userRes.json();
+      // 2. Fetch withdrawals from Supabase
+      const { data: withData } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (depData.success) setDeposits(depData.data);
-      if (withData.success) setWithdrawals(withData.data);
-      if (refData.success) setReferralGroups(refData.data);
-      if (partData.success) setPartners(partData.data);
-      if (userData.success) setUsersList(userData.data);
+      if (withData) {
+        setWithdrawals(withData.map((w: any) => ({
+          _id: w.id,
+          amount: Number(w.amount),
+          paymentMethod: w.payment_method,
+          accountDetails: w.account_details,
+          status: w.status,
+          createdAt: w.created_at,
+          user: { firstName: 'User', lastName: '', email: w.user_id }
+        })));
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -133,31 +150,29 @@ export default function AdminDashboard() {
   const handleStatusUpdate = async (id: string, type: 'deposits' | 'withdrawals', status: 'approved' | 'rejected') => {
     setActionLoading(`${id}-${status}`);
     try {
-      const apiUrl = getApiUrl();
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/${type}/${id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setModal({
-          show: true,
-          title: status === 'approved' ? 'Approved!' : 'Rejected!',
-          message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been ${status} successfully.`,
-          type: 'success'
-        });
-        fetchData();
-      } else {
-        setModal({ show: true, title: 'Failed', message: data.message || 'Action could not be performed.', type: 'error' });
+      const updates: any = { status };
+      if (status === 'approved' && type === 'deposits') {
+        updates.approved_at = new Date().toISOString();
       }
-    } catch (error) {
+
+      const { error } = await supabase
+        .from(type)
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setModal({
+        show: true,
+        title: status === 'approved' ? 'Approved!' : 'Rejected!',
+        message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been ${status} successfully.`,
+        type: 'success'
+      });
+      fetchData();
+    } catch (error: unknown) {
       console.error(error);
-      setModal({ show: true, title: 'Error', message: 'Something went wrong.', type: 'error' });
+      const msg = error instanceof Error ? error.message : 'Action could not be performed.';
+      setModal({ show: true, title: 'Error', message: msg, type: 'error' });
     } finally {
       setActionLoading(null);
     }
@@ -166,27 +181,24 @@ export default function AdminDashboard() {
   const handleDelete = async (id: string, type: 'deposits' | 'withdrawals') => {
     setActionLoading(`${id}-delete`);
     try {
-      const apiUrl = getApiUrl();
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${apiUrl}/api/${type}/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const { error } = await supabase
+        .from(type)
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setModal({
+        show: true,
+        title: 'Deleted',
+        message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been deleted.`,
+        type: 'success'
       });
-      const data = await response.json();
-      if (data.success) {
-        setModal({
-          show: true,
-          title: 'Deleted',
-          message: `${type === 'deposits' ? 'Deposit' : 'Withdrawal'} has been deleted.`,
-          type: 'success'
-        });
-        fetchData();
-      } else {
-        setModal({ show: true, title: 'Failed', message: data.message || 'Could not delete.', type: 'error' });
-      }
-    } catch (error) {
+      fetchData();
+    } catch (error: unknown) {
       console.error(error);
-      setModal({ show: true, title: 'Error', message: 'Something went wrong.', type: 'error' });
+      const msg = error instanceof Error ? error.message : 'Could not delete.';
+      setModal({ show: true, title: 'Error', message: msg, type: 'error' });
     } finally {
       setActionLoading(null);
       setDeleteConfirm(null);

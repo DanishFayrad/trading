@@ -1,7 +1,7 @@
 "use client";
 import React, { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getApiUrl } from '@/config';
+import { supabase } from '@/lib/supabase';
 
 function DepositContent() {
   const searchParams = useSearchParams();
@@ -11,7 +11,6 @@ function DepositContent() {
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [transactionId, setTransactionId] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const amt = searchParams.get('amount');
@@ -30,7 +29,16 @@ function DepositContent() {
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
+  };
+
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,202 +51,206 @@ function DepositContent() {
     setLoading(true);
 
     try {
-      const apiUrl = getApiUrl();
-      const token = localStorage.getItem('token');
+      // Get current logged-in Supabase user
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      
+      const screenshotBase64 = await convertFileToBase64(screenshot);
 
-      const body = new FormData();
-      body.append('amount', amount);
-      body.append('paymentMethod', selectedMethod);
-      body.append('transactionId', transactionId);
-      body.append('planName', planName);
-      body.append('screenshot', screenshot);
+      const { error } = await supabase.from('deposits').insert([
+        {
+          user_id: user?.id || null,
+          amount: Number(amount),
+          payment_method: selectedMethod,
+          transaction_id: transactionId || null,
+          plan_name: planName,
+          screenshot: screenshotBase64,
+          status: 'pending',
+        }
+      ]);
 
-      const response = await fetch(`${apiUrl}/api/deposits`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body,
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setSuccess(true);
+      if (error) {
+        console.error('Supabase deposit error:', error);
+        showToast(error.message || 'Submission failed. Please check Supabase table.', 'error');
+      } else {
         showToast('Deposit submitted successfully!', 'success');
         setSelectedMethod(null);
         setAmount('');
         setScreenshot(null);
         setTransactionId('');
-      } else {
-        showToast(data.message || 'Submission failed', 'error');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      showToast('An error occurred. Please check your connection.', 'error');
+      const msg = error instanceof Error ? error.message : 'An error occurred during deposit.';
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderToast = () => {
+    if (!toast.show) return null;
+    return (
+      <div className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-[9999] animate-rise px-4 w-full max-w-md">
+        <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-md ${toast.type === 'success' ? 'bg-[#f0fdf4]/95 border-[#bbf7d0] text-[#15a86b]' : 'bg-[#fef2f2]/95 border-[#fecaca] text-[#ef4444]'}`}>
+          {toast.type === 'success' ? (
+            <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
+          ) : (
+            <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          )}
+          <span className="text-[15px] font-semibold tracking-tight">{toast.message}</span>
+        </div>
+      </div>
+    );
   };
 
   if (selectedMethod) {
     const methodInfo = paymentMethods.find(m => m.id === selectedMethod);
     return (
       <div className="space-y-6 pb-4 relative">
+        {renderToast()}
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#5b5bd6]/10 blob -z-10 pointer-events-none"></div>
         <div className="glass rounded-[28px] p-6 sm:p-7 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-56 h-56 bg-[#7c5cdb]/8 blob -mr-28 -mt-28 pointer-events-none"></div>
           <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-[#eef0ff] text-[#5b5bd6] flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-[#eef0ff] text-[#5b5bd6] flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+              </div>
+              <div>
+                <h1 className="text-[22px] font-semibold tracking-[-0.02em]">{methodInfo?.name} <span className="gradient-text">deposit</span></h1>
+                <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1">Add funds to your account</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-[22px] font-semibold tracking-[-0.02em]">{methodInfo?.name} <span className="gradient-text">deposit</span></h1>
-              <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1">Add funds to your account</p>
-            </div>
-          </div>
 
-          <button onClick={() => setSelectedMethod(null)} className="flex items-center gap-2 text-[#86868b] hover:text-[#5b5bd6] transition-colors text-[14px] mb-8 font-medium">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Back
-          </button>
+            <button onClick={() => setSelectedMethod(null)} className="flex items-center gap-2 text-[#86868b] hover:text-[#5b5bd6] transition-colors text-[14px] mb-8 font-medium">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+              Back
+            </button>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="glass-soft rounded-3xl p-6 mb-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="glass-soft rounded-3xl p-6 mb-6">
                 <div className="text-center mb-6">
-                    <h3 className="text-[15px] font-semibold tracking-tight mb-1">{methodInfo?.name} payment details</h3>
-                    <p className="text-[12px] sm:text-[13px] text-[#86868b]">Send payment to the details below</p>
+                  <h3 className="text-[15px] font-semibold tracking-tight mb-1">{methodInfo?.name} payment details</h3>
+                  <p className="text-[12px] sm:text-[13px] text-[#86868b]">Send payment to the details below</p>
                 </div>
 
                 <div className="bg-white border border-[#e6e6eb] rounded-xl p-6 mb-6 flex justify-between items-center relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full" style={{ background: 'linear-gradient(#5b5bd6, #7c5cdb)' }}></div>
-                    <div className="flex-1 text-center">
-                        <p className="text-[12px] text-[#86868b] mb-1">Jazz Cash number</p>
-                        <h2 className="text-[22px] font-semibold gradient-text tracking-wide font-mono">03205805955</h2>
-                        <p className="text-[12px] text-[#86868b] mt-1">Haleema Bibi</p>
-                    </div>
+                  <div className="absolute top-0 left-0 w-1 h-full" style={{ background: 'linear-gradient(#5b5bd6, #7c5cdb)' }}></div>
+                  <div className="flex-1 text-center">
+                    <p className="text-[12px] text-[#86868b] mb-1">Jazz Cash number</p>
+                    <h2 className="text-[22px] font-semibold gradient-text tracking-wide font-mono">03205805955</h2>
+                    <p className="text-[12px] text-[#86868b] mt-1">Haleema Bibi</p>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
-                    <div>
-                        <label className="flex justify-between text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">
-                            <span>Deposit amount (Rs)</span>
-                            {amount && <span>~ $ {(Number(amount) / 278).toFixed(2)}</span>}
-                        </label>
-                        <input
-                            type="number"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            className="input-light w-full rounded-xl px-4 py-3.5 text-[15px] font-medium"
-                            placeholder="Enter amount"
-                            required
-                        />
+                  <div>
+                    <label className="flex justify-between text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">
+                      <span>Deposit amount (Rs)</span>
+                      {amount && <span>~ $ {(Number(amount) / 278).toFixed(2)}</span>}
+                    </label>
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="input-light w-full rounded-xl px-4 py-3.5 text-[15px] font-medium"
+                      placeholder="Enter amount"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">Transaction ID (optional)</label>
+                    <input
+                      type="text"
+                      value={transactionId}
+                      onChange={(e) => setTransactionId(e.target.value)}
+                      className="input-light w-full rounded-xl px-4 py-3.5 text-[15px] font-medium"
+                      placeholder="Enter transaction ID"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">Upload payment screenshot</label>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                        className="hidden"
+                        id="screenshot-upload"
+                        required
+                      />
+                      <label
+                        htmlFor="screenshot-upload"
+                        className="w-full input-light border-dashed rounded-xl px-4 py-8 text-center cursor-pointer hover:border-[#5b5bd6] transition-all flex flex-col items-center gap-2"
+                      >
+                        <svg className="w-8 h-8 text-[#86868b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span className="text-[14px] text-[#86868b] font-medium">{screenshot ? screenshot.name : 'Click to upload screenshot'}</span>
+                      </label>
                     </div>
-                    <div>
-                        <label className="block text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">Transaction ID (optional)</label>
-                        <input
-                            type="text"
-                            value={transactionId}
-                            onChange={(e) => setTransactionId(e.target.value)}
-                            className="input-light w-full rounded-xl px-4 py-3.5 text-[15px] font-medium"
-                            placeholder="Enter transaction ID"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-[12px] sm:text-[13px] text-[#86868b] mb-2 px-1">Upload payment screenshot</label>
-                        <div className="relative">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
-                                className="hidden"
-                                id="screenshot-upload"
-                                required
-                            />
-                            <label
-                                htmlFor="screenshot-upload"
-                                className="w-full input-light border-dashed rounded-xl px-4 py-8 text-center cursor-pointer hover:border-[#5b5bd6] transition-all flex flex-col items-center gap-2"
-                            >
-                                <svg className="w-8 h-8 text-[#86868b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                <span className="text-[14px] text-[#86868b] font-medium">{screenshot ? screenshot.name : 'Click to upload screenshot'}</span>
-                            </label>
-                        </div>
-                    </div>
+                  </div>
                 </div>
-            </div>
+              </div>
 
-            <button
+              <button
                 type="submit"
                 disabled={loading}
                 className={`btn-primary w-full font-medium text-[15px] py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
+              >
                 {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : null}
                 {loading ? 'Submitting...' : 'Submit deposit'}
                 {!loading && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>}
-            </button>
-          </form>
+              </button>
+            </form>
           </div>
         </div>
-
-        {toast.show && (
-            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-rise">
-                <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-lg border ${toast.type === 'success' ? 'bg-[#f0fdf4] border-[#bbf7d0] text-[#15a86b]' : 'bg-[#fef2f2] border-[#fecaca] text-[#ef4444]'}`}>
-                    {toast.type === 'success' ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                    ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    )}
-                    <span className="text-[14px] font-medium tracking-tight">{toast.message}</span>
-                </div>
-            </div>
-        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-4 relative">
+      {renderToast()}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#5b5bd6]/10 blob -z-10 pointer-events-none"></div>
       <div className="glass rounded-[28px] p-6 sm:p-7 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-56 h-56 bg-[#7c5cdb]/8 blob -mr-28 -mt-28 pointer-events-none"></div>
         <div className="relative z-10">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-[#eef0ff] text-[#5b5bd6] flex items-center justify-center">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
-          </div>
-          <div>
-            <h1 className="text-[24px] sm:text-[26px] font-semibold tracking-[-0.02em]">Select <span className="gradient-text">payment method</span></h1>
-            <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1">Add funds to your account</p>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div>
-            <p className="text-[12px] sm:text-[13px] text-[#86868b] mb-3 px-1">Payment methods</p>
-            <div className="space-y-3">
-              {paymentMethods.map(method => (
-                <button
-                  key={method.id}
-                  onClick={() => setSelectedMethod(method.id)}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl glass-soft glass-hover text-left`}
-                >
-                  <div>
-                    <h3 className="text-[14px] font-semibold tracking-tight text-[#1d1d1f]">{method.name}</h3>
-                    <p className={`text-[12px] ${method.color} font-medium`}>{method.subtitle}</p>
-                  </div>
-                  <div className={`w-9 h-9 rounded-full ${method.bg} flex items-center justify-center border ${method.border}`}>
-                    <svg className={`w-4 h-4 ${method.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={method.icon}></path>
-                    </svg>
-                  </div>
-                </button>
-              ))}
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-[#eef0ff] text-[#5b5bd6] flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+            </div>
+            <div>
+              <h1 className="text-[24px] sm:text-[26px] font-semibold tracking-[-0.02em]">Select <span className="gradient-text">payment method</span></h1>
+              <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1">Add funds to your account</p>
             </div>
           </div>
 
-        </div>
+          <div className="space-y-6">
+            <div>
+              <p className="text-[12px] sm:text-[13px] text-[#86868b] mb-3 px-1">Payment methods</p>
+              <div className="space-y-3">
+                {paymentMethods.map(method => (
+                  <button
+                    key={method.id}
+                    onClick={() => setSelectedMethod(method.id)}
+                    className="w-full flex items-center justify-between p-4 rounded-2xl glass-soft glass-hover text-left"
+                  >
+                    <div>
+                      <h3 className="text-[14px] font-semibold tracking-tight text-[#1d1d1f]">{method.name}</h3>
+                      <p className={`text-[12px] ${method.color} font-medium`}>{method.subtitle}</p>
+                    </div>
+                    <div className={`w-9 h-9 rounded-full ${method.bg} flex items-center justify-center border ${method.border}`}>
+                      <svg className={`w-4 h-4 ${method.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={method.icon}></path>
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

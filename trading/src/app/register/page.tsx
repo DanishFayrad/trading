@@ -3,7 +3,7 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { getApiUrl } from '@/config';
+import { supabase } from '@/lib/supabase';
 
 function RegisterForm() {
   const searchParams = useSearchParams();
@@ -39,40 +39,61 @@ function RegisterForm() {
       return;
     }
 
+    if (formData.password !== formData.confirmPassword) {
+      setToast({ show: true, message: 'Passwords do not match.', type: 'error' });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      return;
+    }
+
     const nameParts = formData.fullName.trim().split(/\s+/);
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || nameParts[0] || 'User';
 
     setIsLoading(true);
     try {
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email: formData.email,
-          password: formData.password,
-          referralCode
-        }),
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            full_name: formData.fullName,
+            phone: formData.phone,
+            referral_code: referralCode
+          }
+        }
       });
 
-      const data = await response.json();
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setToast({ show: true, message: 'User registered successfully!', type: 'success' });
-        setTimeout(() => {
-            window.location.href = '/dashboard';
-        }, 1500);
-      } else {
-        setToast({ show: true, message: data.message || 'Registration failed', type: 'error' });
+      if (error) {
+        setToast({ show: true, message: error.message || 'Registration failed', type: 'error' });
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      } else {
+        if (data.session) {
+          localStorage.setItem('token', data.session.access_token);
+          localStorage.setItem('user', JSON.stringify({
+            id: data.user?.id,
+            email: data.user?.email,
+            firstName,
+            lastName,
+            phone: formData.phone,
+            role: 'user'
+          }));
+          setToast({ show: true, message: 'User registered successfully!', type: 'success' });
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1500);
+        } else {
+          setToast({ show: true, message: 'Account created! Please check your email to confirm.', type: 'success' });
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2500);
+        }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      setToast({ show: true, message: 'An error occurred during registration.', type: 'error' });
+      const errMsg = error instanceof Error ? error.message : 'An error occurred during registration.';
+      setToast({ show: true, message: errMsg, type: 'error' });
       setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     } finally {
       setIsLoading(false);

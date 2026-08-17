@@ -1,15 +1,15 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '@/config';
+import { supabase } from '@/lib/supabase';
 
 interface Deposit {
-  _id: string;
+  id: string;
   amount: number;
-  paymentMethod: string;
+  payment_method: string;
   status: string;
   screenshot: string;
-  createdAt: string;
-  transactionId?: string;
+  created_at: string;
+  transaction_id?: string;
 }
 
 export default function TransactionsPage() {
@@ -20,14 +20,18 @@ export default function TransactionsPage() {
   useEffect(() => {
     const fetchMyDeposits = async () => {
       try {
-        const apiUrl = getApiUrl();
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${apiUrl}/api/deposits/my`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-        if (data.success) {
-          setDeposits(data.data);
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) return;
+
+        const { data, error } = await supabase
+          .from('deposits')
+          .select('*')
+          .eq('user_id', userData.user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (data) {
+          setDeposits(data);
         }
       } catch (error) {
         console.error(error);
@@ -59,7 +63,7 @@ export default function TransactionsPage() {
           </div>
         ) : (
           deposits.map((deposit) => (
-            <div key={deposit._id} className="glass rounded-2xl p-4 flex items-center justify-between">
+            <div key={deposit.id} className="glass rounded-2xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div
                     className="w-12 h-12 rounded-lg bg-[#f5f5f7] border border-[#e6e6eb] overflow-hidden cursor-pointer group relative flex-shrink-0"
@@ -75,8 +79,8 @@ export default function TransactionsPage() {
                     </div>
                 </div>
                 <div>
-                    <h3 className="text-[14px] font-semibold text-[#1d1d1f] capitalize tracking-tight">{deposit.paymentMethod} Deposit</h3>
-                    <p className="text-[12px] text-[#86868b]">{new Date(deposit.createdAt).toLocaleDateString()} • {new Date(deposit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <h3 className="text-[14px] font-semibold text-[#1d1d1f] capitalize tracking-tight">{deposit.payment_method} Deposit</h3>
+                    <p className="text-[12px] text-[#86868b]">{new Date(deposit.created_at).toLocaleDateString()} • {new Date(deposit.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </div>
               <div className="text-right">

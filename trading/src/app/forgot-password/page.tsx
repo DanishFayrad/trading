@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { getApiUrl } from '@/config';
+import { supabase } from '@/lib/supabase';
 
 type Step = 'email' | 'otp' | 'password' | 'done';
 
@@ -20,27 +20,17 @@ export default function ForgotPassword() {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  const post = async (path: string, body: Record<string, unknown>) => {
-    const apiUrl = getApiUrl();
-    const res = await fetch(`${apiUrl}/api/auth/${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return res.json();
-  };
-
-  // Step 1 — request the OTP
+  // Step 1 — request the password reset email / OTP
   const requestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const data = await post('forgot-password', { email });
-      if (data.success) {
-        notify('Code sent! Check your email.', 'success');
-        setStep('otp');
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) {
+        notify(error.message || 'Could not send reset email');
       } else {
-        notify(data.message || 'Could not send code');
+        notify('Password reset link sent! Check your email.', 'success');
+        setStep('otp');
       }
     } catch {
       notify('Something went wrong. Please try again.');
@@ -49,17 +39,21 @@ export default function ForgotPassword() {
     }
   };
 
-  // Step 2 — verify the OTP
+  // Step 2 — verify the OTP token
   const verifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length !== 6) return notify('Enter the 6-digit code');
+    if (otp.length < 6) return notify('Enter the 6-digit code');
     setIsLoading(true);
     try {
-      const data = await post('verify-otp', { email, otp });
-      if (data.success) {
-        setStep('password');
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'recovery',
+      });
+      if (error) {
+        notify(error.message || 'Invalid code');
       } else {
-        notify(data.message || 'Invalid code');
+        setStep('password');
       }
     } catch {
       notify('Something went wrong. Please try again.');
@@ -75,11 +69,11 @@ export default function ForgotPassword() {
     if (password !== confirmPassword) return notify('Passwords do not match');
     setIsLoading(true);
     try {
-      const data = await post('reset-password', { email, otp, password });
-      if (data.success) {
-        setStep('done');
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        notify(error.message || 'Could not reset password');
       } else {
-        notify(data.message || 'Could not reset password');
+        setStep('done');
       }
     } catch {
       notify('Something went wrong. Please try again.');
@@ -91,8 +85,8 @@ export default function ForgotPassword() {
   const resendCode = async () => {
     setIsLoading(true);
     try {
-      const data = await post('forgot-password', { email });
-      notify(data.success ? 'A new code has been sent.' : (data.message || 'Could not resend'), data.success ? 'success' : 'error');
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      notify(error ? error.message : 'A new code has been sent.', error ? 'error' : 'success');
     } catch {
       notify('Something went wrong. Please try again.');
     } finally {

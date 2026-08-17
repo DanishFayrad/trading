@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { getApiUrl } from '@/config';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -20,28 +20,35 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
       });
 
-      const data = await response.json();
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      if (error) {
+        setToast({ show: true, message: error.message || 'Login failed', type: 'error' });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      } else if (data.session) {
+        localStorage.setItem('token', data.session.access_token);
+        const metadata = data.user?.user_metadata || {};
+        const isAdmin = formData.email.toLowerCase() === 'admin@primeinvestpro.com' || metadata.role === 'admin';
+        localStorage.setItem('user', JSON.stringify({
+          id: data.user?.id,
+          email: data.user?.email,
+          firstName: metadata.first_name || (isAdmin ? 'Admin' : ''),
+          lastName: metadata.last_name || '',
+          phone: metadata.phone || '',
+          role: isAdmin ? 'admin' : (metadata.role || 'user')
+        }));
         setToast({ show: true, message: 'Logged in successfully!', type: 'success' });
         setTimeout(() => {
-            window.location.href = '/dashboard';
+          window.location.href = isAdmin ? '/admin' : '/dashboard';
         }, 1000);
-      } else {
-        setToast({ show: true, message: data.message || 'Login failed', type: 'error' });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      setToast({ show: true, message: 'An error occurred during login.', type: 'error' });
+      const errMsg = error instanceof Error ? error.message : 'An error occurred during login.';
+      setToast({ show: true, message: errMsg, type: 'error' });
       setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     } finally {
       setIsLoading(false);
