@@ -362,19 +362,9 @@ export default function DashboardPage() {
                 
                 <p className="text-[13px] text-[#4a4a50] leading-relaxed mb-4">
                   {fastWithdrawalEligible ? (
-                    <>
-                      Congratulations! You have invited {successfulReferrals} active users who deposited. Your VIP rank is active: you receive a 20% bonus per deposit and your withdrawals are processed within 6 hours instead of the standard 24 hours.
-                      <span className="block mt-2 font-medium text-[14px] text-right font-sans" dir="rtl">
-                        مبارک ہو! آپ نے {successfulReferrals} فعال صارفین کو دعوت دی ہے جنہوں نے ڈیپازٹ کیا ہے۔ آپ کا وی آئی پی رینک فعال ہے: آپ کو ہر ڈیپازٹ پر 20% بونس ملے گا اور آپ کے ودڈرال عام 24 گھنٹے کے بجائے 6 گھنٹے میں پروسیس ہوں گے۔
-                      </span>
-                    </>
+                    `Congratulations! You have invited ${successfulReferrals} active users who deposited. Your VIP rank is active: you receive a 20% bonus per deposit and your withdrawals are processed within 6 hours instead of the standard 24 hours.`
                   ) : (
-                    <>
-                      Invite {referralsThreshold} users who deposit to unlock exclusive partner benefits: earn a huge 20% bonus per deposit, and upgrade your withdrawal processing time to 6 hours instead of the standard 24 hours.
-                      <span className="block mt-2 font-medium text-[14px] text-right font-sans" dir="rtl">
-                        خصوصی پارٹنر فوائد حاصل کرنے کے لیے ایسے {referralsThreshold} صارفین کو دعوت دیں جو ڈیپازٹ کریں۔ ہر ڈیپازٹ پر 20% کا بڑا بونس حاصل کریں، اور اپنے ودڈرال کی پروسیسنگ کا وقت عام 24 گھنٹے سے اپ گریڈ کر کے صرف 6 گھنٹے کریں۔
-                      </span>
-                    </>
+                    `Invite ${referralsThreshold} users who deposit to unlock exclusive partner benefits: earn a huge 20% bonus per deposit, and upgrade your withdrawal processing time to 6 hours instead of the standard 24 hours.`
                   )}
                 </p>
 
