@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getApiUrl } from '@/config';
 
 interface Deposit {
   _id: string;
