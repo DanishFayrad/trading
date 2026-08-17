@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import PackageSlider from '@/components/PackageSlider';
+import DailyTasks from '@/components/DailyTasks';
 
 export default function DashboardPage() {
   const [timeLeft, setTimeLeft] = useState('00 : 00 : 00');
@@ -14,6 +15,7 @@ export default function DashboardPage() {
   const [miningActive, setMiningActive] = useState(false);
   const [miningDuration, setMiningDuration] = useState('00:00:00');
   const [activeDeposits, setActiveDeposits] = useState<any[]>([]);
+  const [activeTaskCount, setActiveTaskCount] = useState<number>(0);
   const [user, setUser] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
@@ -92,9 +94,12 @@ export default function DashboardPage() {
     };
     setMiningDuration(formatDuration(Math.floor((now - earliestApprovedAt) / 1000)));
 
-    // Smooth balance tick — 10 ticks/sec totals one second's accrual
+    // Power ratio based on calibrated daily nodes (0 nodes = 0.2 standby, 1=0.2, 2=0.4, 3=0.6, 4=0.8, 5=1.0 full peak yield)
+    const powerMultiplier = activeTaskCount > 0 ? (activeTaskCount / 5) : 0.2;
+
+    // Smooth balance tick — scales dynamically with solved puzzle tasks
     const smoothInterval = setInterval(() => {
-        setBalance(prev => prev + totalInvested * RATE_PER_DOLLAR_PER_SECOND / 10);
+        setBalance(prev => prev + (totalInvested * RATE_PER_DOLLAR_PER_SECOND * powerMultiplier) / 10);
     }, 100);
 
     // Duration recomputed from elapsed time (persists across refresh, drift-free)
@@ -106,7 +111,7 @@ export default function DashboardPage() {
         clearInterval(smoothInterval);
         clearInterval(durationInterval);
     };
-  }, [miningActive, activeDeposits, totalInvested]);
+  }, [miningActive, activeDeposits, totalInvested, activeTaskCount]);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -290,9 +295,25 @@ export default function DashboardPage() {
           <div className="glass rounded-[28px] p-8 sm:p-10 text-center relative overflow-hidden animate-rise">
             <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-40 bg-[#5b5bd6]/12 blob" />
             <div className="relative">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full chip text-[12px] font-medium mb-6">
-                <span className={`w-1.5 h-1.5 rounded-full ${miningActive ? 'bg-[#5b5bd6] animate-pulse-soft' : 'bg-[#aeaeb5]'}`} />
-                {miningActive ? 'AI mining engine active' : 'Engine idle'}
+              <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full chip text-[12px] font-medium mb-6 ${
+                activeTaskCount === 5 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                  : activeTaskCount > 0 
+                  ? 'bg-[#eef0ff] text-[#5b5bd6] border border-[#dadcff]' 
+                  : 'bg-amber-50 text-amber-800 border border-amber-200'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${
+                  activeTaskCount === 5 ? 'bg-emerald-500 animate-pulse' : activeTaskCount > 0 ? 'bg-[#5b5bd6] animate-pulse-soft' : 'bg-amber-500'
+                }`} />
+                {miningActive ? (
+                  activeTaskCount === 5 
+                    ? '🔥 100% Peak Node Yield Active' 
+                    : activeTaskCount > 0 
+                    ? `⚡ ${activeTaskCount * 20}% Node Hashrate Active (${activeTaskCount}/5 Calibrated)`
+                    : '⚠️ Standby Yield (Calibrate Nodes Below)'
+                ) : (
+                  'Engine Idle — Deposit to activate'
+                )}
               </div>
 
               <p className="text-[13px] text-[#86868b] mb-2">Live balance accumulation</p>
@@ -324,7 +345,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="glass-soft rounded-2xl p-3 sm:p-4">
                   <p className="text-[11px] sm:text-[12px] text-[#86868b] mb-1">Hash power</p>
-                  <p className={`text-[15px] sm:text-[18px] font-semibold font-mono ${miningActive ? 'text-[#5b5bd6]' : 'text-[#c7c7cc]'}`}>{totalInvested > 0 ? (totalInvested * 0.8).toFixed(1) : '0.0'} GH/s</p>
+                  <p className={`text-[15px] sm:text-[18px] font-semibold font-mono ${miningActive ? 'text-[#5b5bd6]' : 'text-[#c7c7cc]'}`}>
+                    {totalInvested > 0 ? (totalInvested * 0.8 * (activeTaskCount > 0 ? activeTaskCount / 5 : 0.2)).toFixed(1) : '0.0'} GH/s
+                  </p>
+                  <p className="text-[10px] text-[#86868b] font-medium mt-0.5">{activeTaskCount}/5 Nodes Online</p>
                 </div>
               </div>
 
@@ -343,6 +367,18 @@ export default function DashboardPage() {
               </Link>
             </div>
           </div>
+
+          {/* Daily Puzzle Tasks Section (5 Tasks every 24 hours) */}
+          <DailyTasks 
+            isDeposited={activeDeposits.length > 0 || totalInvested > 0} 
+            userId={user?.id || user?.email || 'user'}
+            onRewardClaim={(amount) => {
+              setBalance(prev => prev + (amount / 278));
+            }}
+            onTasksChange={(count) => {
+              setActiveTaskCount(count);
+            }}
+          />
 
           {/* Fast withdrawal notice */}
           <div className={`rounded-3xl p-6 border ${fastWithdrawalEligible ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200' : 'bg-gradient-to-br from-[#f8f9ff] to-[#eef0ff] border-[#dadcff]'}`}>
