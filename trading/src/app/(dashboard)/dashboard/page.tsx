@@ -40,8 +40,8 @@ export default function DashboardPage() {
         .eq('user_id', uid);
 
       if (!error && depData) {
-        // Start counter on approved or submitted deposits
-        const validDeposits = depData.filter((d: any) => d.status === 'approved' || d.status === 'pending');
+        // Start counter ONLY on approved deposits
+        const validDeposits = depData.filter((d: any) => d.status === 'approved');
         const totalAmount = validDeposits.reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
         const investedUsd = totalAmount / 278;
         setTotalInvested(investedUsd);
