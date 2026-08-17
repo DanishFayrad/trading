@@ -67,7 +67,13 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (!miningActive || totalInvested <= 0) return;
+    // ONLY start the live counter if deposit is approved AND at least 1 puzzle task is solved today!
+    if (!miningActive || totalInvested <= 0 || activeTaskCount === 0) {
+      if (activeTaskCount === 0) {
+        setMiningDuration('00:00:00');
+      }
+      return;
+    }
 
     // Rs 1 profit per $1 invested every 2 days. (USD↔PKR ≈ 278)
     const PKR_RATE = 278;
@@ -83,7 +89,12 @@ export default function DashboardPage() {
         const elapsedSeconds = Math.max(0, (now - approvedAt) / 1000);
         initialBalance += amountUsd * RATE_PER_DOLLAR_PER_SECOND * elapsedSeconds;
     });
-    setBalance(initialBalance > 0 ? initialBalance : 0.0001);
+
+    // Power ratio based on calibrated daily nodes (1=20%, 2=40%, 3=60%, 4=80%, 5=100% full peak yield)
+    const powerMultiplier = activeTaskCount / 5;
+
+    // Set initial balance scaled by active nodes
+    setBalance(initialBalance > 0 ? (initialBalance * powerMultiplier) : 0.0001);
 
     const formatDuration = (totalSec: number) => {
         const s = Math.max(0, totalSec);
@@ -94,15 +105,12 @@ export default function DashboardPage() {
     };
     setMiningDuration(formatDuration(Math.floor((now - earliestApprovedAt) / 1000)));
 
-    // Power ratio based on calibrated daily nodes (0 nodes = 0.2 standby, 1=0.2, 2=0.4, 3=0.6, 4=0.8, 5=1.0 full peak yield)
-    const powerMultiplier = activeTaskCount > 0 ? (activeTaskCount / 5) : 0.2;
-
-    // Smooth balance tick — scales dynamically with solved puzzle tasks
+    // Smooth balance tick — runs dynamically once puzzle task is solved
     const smoothInterval = setInterval(() => {
         setBalance(prev => prev + (totalInvested * RATE_PER_DOLLAR_PER_SECOND * powerMultiplier) / 10);
     }, 100);
 
-    // Duration recomputed from elapsed time (persists across refresh, drift-free)
+    // Duration recomputed from elapsed time
     const durationInterval = setInterval(() => {
         setMiningDuration(formatDuration(Math.floor((Date.now() - earliestApprovedAt) / 1000)));
     }, 1000);
@@ -324,16 +332,30 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <Link href={miningActive ? '/invests' : '/deposit'} className={`group w-full flex items-center justify-center gap-2 font-medium text-[15px] py-3.5 rounded-xl transition-all ${miningActive ? 'btn-primary' : 'btn-ghost'}`}>
-                {miningActive ? (
-                  <>
-                    View mining analytics
-                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                  </>
-                ) : (
+              <Link 
+                href={!miningActive ? '/deposit' : activeTaskCount === 0 ? '#daily-tasks' : '/invests'} 
+                className={`group w-full flex items-center justify-center gap-2 font-medium text-[15px] py-3.5 rounded-xl transition-all ${
+                  !miningActive 
+                    ? 'btn-ghost' 
+                    : activeTaskCount === 0 
+                    ? 'bg-gradient-to-r from-[#5b5bd6] to-[#7c5cdb] text-white shadow-lg shadow-[#5b5bd6]/30 animate-pulse' 
+                    : 'btn-primary'
+                }`}
+              >
+                {!miningActive ? (
                   <>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     Start AI engine now
+                  </>
+                ) : activeTaskCount === 0 ? (
+                  <>
+                    <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                    Solve Node Puzzle to Start Counter
+                  </>
+                ) : (
+                  <>
+                    View mining analytics
+                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                   </>
                 )}
               </Link>

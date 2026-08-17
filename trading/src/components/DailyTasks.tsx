@@ -168,7 +168,7 @@ export default function DailyTasks({ isDeposited, userId = 'guest', onRewardClai
   }, 0);
 
   return (
-    <div className="glass rounded-[28px] p-6 sm:p-7 relative overflow-hidden border border-white/40 shadow-sm animate-rise">
+    <div id="daily-tasks" className="glass rounded-[28px] p-6 sm:p-7 relative overflow-hidden border border-white/40 shadow-sm animate-rise scroll-mt-24">
       <div className="absolute top-0 right-0 w-64 h-64 bg-[#5b5bd6]/8 rounded-full blur-2xl pointer-events-none -mr-20 -mt-20"></div>
 
       {/* Toast popup */}
