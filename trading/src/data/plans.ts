@@ -19,7 +19,6 @@ export interface Plan {
 
 // Prices are in PKR. Each package pays its daily ROI of the price per day for `duration` days.
 export const plans: Plan[] = [
-    { name: "Starter Node",  price: 300,    duration: 30, hash: "500 GH/s",     color: "from-emerald-400 to-emerald-600", shadow: "shadow-emerald-200" },
     { name: "Bronze Node",   price: 750,    duration: 30, hash: "1,200 GH/s",   color: "from-orange-400 to-orange-600",   shadow: "shadow-orange-200" },
     { name: "Silver Node",   price: 1500,   duration: 30, hash: "2,500 GH/s",   color: "from-slate-400 to-slate-600",     shadow: "shadow-slate-200" },
     { name: "Gold Node",     price: 3000,   duration: 30, hash: "5,000 GH/s",   color: "from-yellow-400 to-yellow-600",   shadow: "shadow-yellow-200" },

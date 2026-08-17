@@ -68,21 +68,11 @@ export default function PackageSlider() {
                   </div>
                   <h4 className="text-[13px] font-semibold tracking-tight truncate">{plan.name}</h4>
                   <p className="text-[18px] font-semibold font-mono mt-0.5">Rs {plan.price.toLocaleString()}</p>
-                  <div className="mt-3 pt-3 border-t border-[#f0f0f3] space-y-1">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-[#86868b]">Daily</span>
-                      <span className="font-mono font-medium text-[#5b5bd6]">Rs {dailyPkr.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-[#86868b]">Total ({plan.duration}d)</span>
-                      <span className="font-mono font-medium text-[#15a86b]">Rs {totalPkr.toLocaleString()}</span>
-                    </div>
-                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleDeployClick(plan)}
-                  className="mt-3 w-full inline-flex items-center justify-center gap-1 py-2 rounded-lg bg-[#5b5bd6] text-white text-[12px] font-medium hover:bg-[#4a4ac4] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+                  className="mt-4 w-full inline-flex items-center justify-center gap-1 py-2.5 rounded-xl bg-[#5b5bd6] text-white text-[13px] font-medium hover:bg-[#4a4ac4] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
                 >
                   Deploy
                 </button>
