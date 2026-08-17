@@ -5,18 +5,19 @@ import { getApiUrl } from '@/config';
 
 interface Deposit {
   _id: string;
-  user?: { firstName: string; lastName: string; email: string; };
+  user?: { firstName: string; lastName: string; email: string; phone?: string; };
   amount: number;
   paymentMethod: string;
   screenshot: string;
   status: string;
   transactionId?: string;
+  planName?: string;
   createdAt: string;
 }
 
 interface Withdrawal {
     _id: string;
-    user?: { firstName: string; lastName: string; email: string; };
+    user?: { firstName: string; lastName: string; email: string; phone?: string; };
     amount: number;
     paymentMethod: string;
     accountDetails: string;
@@ -81,6 +82,7 @@ export default function AdminDashboard() {
   const [expandedPartners, setExpandedPartners] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; type: 'deposits' | 'withdrawals' } | null>(null);
@@ -93,8 +95,9 @@ export default function AdminDashboard() {
     show: false, title: '', message: '', type: 'success'
   });
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isManualRefresh = false) => {
+    if (isManualRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       // 1. Fetch deposits from Supabase
       const { data: depData, error: depError } = await supabase
@@ -110,24 +113,26 @@ export default function AdminDashboard() {
           screenshot: d.screenshot,
           status: d.status,
           transactionId: d.transaction_id,
+          planName: d.plan_name,
           createdAt: d.created_at,
           user: {
-            firstName: d.plan_name || 'User',
+            firstName: d.user_name || d.plan_name || 'Investor',
             lastName: '',
-            email: d.user_id || 'Registered user'
+            email: d.user_email || d.user_id || 'Registered Account',
+            phone: d.user_phone || ''
           }
         })));
 
         // Populate usersList from depositors
         const uniqueUsersMap = new Map();
         depData.forEach((d: any) => {
-          const uid = d.user_id || d.id;
+          const uid = d.user_id || d.user_email || d.id;
           if (!uniqueUsersMap.has(uid)) {
             uniqueUsersMap.set(uid, {
               _id: uid,
-              firstName: d.plan_name || 'Investor',
+              firstName: d.user_name || d.plan_name || 'Investor',
               lastName: '',
-              email: d.user_id || 'Investor Account',
+              email: d.user_email || d.user_id || 'Investor Account',
               balance: Number(d.amount),
               depositedTotal: Number(d.amount),
               affiliateBalance: 0,
@@ -157,19 +162,35 @@ export default function AdminDashboard() {
           accountDetails: w.account_details,
           status: w.status,
           createdAt: w.created_at,
-          user: { firstName: 'User', lastName: '', email: w.user_id }
+          user: { firstName: w.user_name || 'User', lastName: '', email: w.user_email || w.user_id || 'Account' }
         })));
       }
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchData();
     setOrigin(window.location.origin);
+
+    // Setup realtime subscription
+    const channel = supabase
+      .channel('admin-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleStatusUpdate = async (id: string, type: 'deposits' | 'withdrawals', status: 'approved' | 'rejected') => {
@@ -407,6 +428,24 @@ export default function AdminDashboard() {
     <div className="space-y-6 pb-20 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-500/10 blob pointer-events-none -z-10"></div>
 
+      {/* Header and Refresh Bar */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-tight text-[#1d1d1f]">Admin <span className="gradient-text">Console</span></h1>
+          <p className="text-[12px] text-[#86868b]">Manage deposits, withdrawals, users and approvals</p>
+        </div>
+        <button
+          onClick={() => fetchData(true)}
+          disabled={refreshing}
+          className="px-3.5 py-2 rounded-xl bg-white/80 border border-[#e6e6eb] text-[13px] font-medium text-[#515159] hover:text-[#1d1d1f] hover:bg-white flex items-center gap-2 shadow-sm transition-all"
+        >
+          <svg className={`w-4 h-4 text-[#5b5bd6] ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+        </button>
+      </div>
+
       {/* Premium Financial Summary Cards */}
       <div className="grid grid-cols-2 gap-4 animate-rise">
         <div className="glass rounded-[24px] p-5 relative overflow-hidden border border-white/20">
@@ -445,17 +484,27 @@ export default function AdminDashboard() {
       <div className="flex items-center gap-2 mb-2 flex-wrap">
           <button
             onClick={() => setTab('deposits')}
-            className={`flex-1 min-w-[80px] py-3.5 rounded-xl font-medium text-[14px] transition-all ${tab === 'deposits' ? 'text-white' : 'btn-ghost'}`}
+            className={`flex-1 min-w-[80px] py-3.5 rounded-xl font-medium text-[14px] transition-all flex items-center justify-center gap-1.5 ${tab === 'deposits' ? 'text-white shadow-lg' : 'btn-ghost'}`}
             style={tab === 'deposits' ? { background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' } : undefined}
           >
-              Deposits
+              <span>Deposits</span>
+              {deposits.filter(d => d.status === 'pending').length > 0 && (
+                <span className={`px-1.5 py-0.2 text-[11px] rounded-full font-bold ${tab === 'deposits' ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'}`}>
+                  {deposits.filter(d => d.status === 'pending').length}
+                </span>
+              )}
           </button>
           <button
             onClick={() => setTab('withdrawals')}
-            className={`flex-1 min-w-[80px] py-3.5 rounded-xl font-medium text-[14px] transition-all ${tab === 'withdrawals' ? 'text-white' : 'btn-ghost'}`}
+            className={`flex-1 min-w-[80px] py-3.5 rounded-xl font-medium text-[14px] transition-all flex items-center justify-center gap-1.5 ${tab === 'withdrawals' ? 'text-white shadow-lg' : 'btn-ghost'}`}
             style={tab === 'withdrawals' ? { background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' } : undefined}
           >
-              Withdrawals
+              <span>Withdrawals</span>
+              {withdrawals.filter(w => w.status === 'pending').length > 0 && (
+                <span className={`px-1.5 py-0.2 text-[11px] rounded-full font-bold ${tab === 'withdrawals' ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'}`}>
+                  {withdrawals.filter(w => w.status === 'pending').length}
+                </span>
+              )}
           </button>
           <button
             onClick={() => setTab('referrals')}
@@ -483,43 +532,124 @@ export default function AdminDashboard() {
       <div className="space-y-4">
         {tab === 'deposits' ? (
             deposits.length === 0 ? (
-                <div className="text-center p-10 glass-soft rounded-2xl text-[#86868b] text-[13px]">No deposit requests found.</div>
+                <div className="text-center p-12 glass rounded-3xl border border-white/40 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-500 mx-auto flex items-center justify-center">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    </div>
+                    <h4 className="text-[15px] font-semibold text-[#1d1d1f]">No deposit requests found</h4>
+                    <p className="text-[#86868b] text-[13px] max-w-sm mx-auto">When users submit a JazzCash or bank deposit with proof screenshot, it will appear here for verification and approval.</p>
+                    <button onClick={() => fetchData(true)} className="btn-secondary text-[13px] px-4 py-2 mt-2">Check for new deposits</button>
+                </div>
             ) : (
                 deposits.map((deposit) => (
-                    <div key={deposit._id} className="glass rounded-2xl p-5 relative overflow-hidden">
-                        <div className={`absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[11px] font-medium ${
-                            deposit.status === 'pending' ? 'bg-orange-50 text-orange-600' : deposit.status === 'approved' ? 'bg-emerald-50 text-[#15a86b]' : 'bg-red-50 text-red-600'
-                        }`}>
-                            {deposit.status}
-                        </div>
-                        <div className="flex gap-5 items-start mb-5">
-                            <div className="w-20 h-20 rounded-2xl bg-[#f5f5f7] border border-[#e6e6eb] flex-shrink-0 cursor-pointer overflow-hidden group relative" onClick={() => setSelectedImage(deposit.screenshot)}>
-                                <img src={deposit.screenshot} alt="Proof" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                    <div key={deposit._id} className="glass rounded-[24px] p-5 relative overflow-hidden border border-white/30 shadow-sm hover:shadow-md transition-all">
+                        {/* Top Badges */}
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`px-3 py-1 rounded-full text-[12px] font-semibold flex items-center gap-1.5 ${
+                                    deposit.status === 'pending' ? 'bg-orange-50 text-orange-600 border border-orange-200' : deposit.status === 'approved' ? 'bg-emerald-50 text-[#15a86b] border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'
+                                }`}>
+                                    {deposit.status === 'pending' && <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>}
+                                    {deposit.status === 'approved' && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
+                                    <span className="capitalize">{deposit.status}</span>
+                                </span>
+
+                                {deposit.planName && (
+                                    <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-medium bg-[#5b5bd6]/10 text-[#5b5bd6] border border-[#5b5bd6]/20">
+                                        {deposit.planName}
+                                    </span>
+                                )}
                             </div>
+
+                            <span className="text-[11px] text-[#86868b] font-medium">
+                                {deposit.createdAt ? new Date(deposit.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
+                        </div>
+
+                        {/* Main Body */}
+                        <div className="flex gap-4 items-start mb-5">
+                            {/* Screenshot proof */}
+                            <div 
+                                className="w-24 h-24 rounded-2xl bg-[#f5f5f7] border border-[#e6e6eb] flex-shrink-0 cursor-pointer overflow-hidden group relative shadow-inner" 
+                                onClick={() => setSelectedImage(deposit.screenshot)}
+                                title="Click to view full image"
+                            >
+                                <img src={deposit.screenshot} alt="Payment Proof" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" /></svg>
+                                </div>
+                            </div>
+
+                            {/* User & Transaction Info */}
                             <div className="flex-1 min-w-0">
-                                <h3 className="text-[15px] font-semibold tracking-tight truncate text-[#1d1d1f]">{deposit.user?.firstName} {deposit.user?.lastName}</h3>
-                                <p className="text-[12px] text-[#86868b] mb-3 truncate">{deposit.user?.email}</p>
-                                <div className="flex gap-6">
-                                    <div className="flex flex-col">
-                                        <span className="text-[11px] text-[#86868b]">Amount</span>
-                                        <span className="text-[16px] font-semibold text-[#15a86b]">Rs {deposit.amount.toLocaleString()}</span>
-                                        <span className="text-[11px] font-mono text-[#86868b]">$ {(deposit.amount / 278).toFixed(2)}</span>
+                                <h3 className="text-[16px] font-bold tracking-tight truncate text-[#1d1d1f]">
+                                    {deposit.user?.firstName} {deposit.user?.lastName}
+                                </h3>
+                                <p className="text-[12px] text-[#86868b] truncate mb-2">
+                                    {deposit.user?.email} {deposit.user?.phone ? `• ${deposit.user.phone}` : ''}
+                                </p>
+
+                                {deposit.transactionId && (
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f5f5f7] border border-[#e6e6eb] text-[11px] font-mono text-[#1d1d1f] mb-3">
+                                        <span className="text-[#86868b]">Trx ID:</span>
+                                        <span className="font-semibold">{deposit.transactionId}</span>
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[11px] text-[#86868b]">Method</span>
-                                        <span className="text-[16px] font-semibold text-[#5b5bd6]">{deposit.paymentMethod}</span>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-3 mt-1">
+                                    <div className="p-2.5 rounded-xl bg-white/60 border border-white/60">
+                                        <span className="text-[10px] text-[#86868b] block uppercase tracking-wider font-semibold">Amount</span>
+                                        <span className="text-[16px] font-bold text-[#15a86b] font-mono block">Rs {deposit.amount.toLocaleString()}</span>
+                                        <span className="text-[10px] font-mono text-[#86868b]">$ {(deposit.amount / 278).toFixed(2)}</span>
+                                    </div>
+                                    <div className="p-2.5 rounded-xl bg-white/60 border border-white/60">
+                                        <span className="text-[10px] text-[#86868b] block uppercase tracking-wider font-semibold">Method</span>
+                                        <span className="text-[15px] font-bold text-[#5b5bd6] capitalize block truncate">{deposit.paymentMethod}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex gap-3">
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2.5 pt-2 border-t border-[#f0f0f5]">
                             {deposit.status === 'pending' && (
                                 <>
-                                    <button onClick={() => handleStatusUpdate(deposit._id, 'deposits', 'approved')} className="flex-1 font-medium text-[14px] py-3 rounded-xl text-white" style={{ background: 'linear-gradient(118deg,#f97316,#ea580c)', boxShadow: '0 10px 30px -8px rgba(249,115,22,0.45)' }}>{actionLoading === `${deposit._id}-approved` ? '...' : 'Approve'}</button>
-                                    <button onClick={() => handleStatusUpdate(deposit._id, 'deposits', 'rejected')} className="flex-1 bg-red-50 text-red-600 border border-red-200 font-medium text-[14px] py-3 rounded-xl">{actionLoading === `${deposit._id}-rejected` ? '...' : 'Reject'}</button>
+                                    <button 
+                                        onClick={() => handleStatusUpdate(deposit._id, 'deposits', 'approved')} 
+                                        disabled={actionLoading !== null}
+                                        className="flex-1 font-semibold text-[14px] py-3 rounded-xl text-white shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-1.5" 
+                                        style={{ background: 'linear-gradient(118deg,#10b981,#059669)', boxShadow: '0 10px 25px -8px rgba(16,185,129,0.5)' }}
+                                    >
+                                        {actionLoading === `${deposit._id}-approved` ? (
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                                <span>Approve</span>
+                                            </>
+                                        )}
+                                    </button>
+                                    <button 
+                                        onClick={() => handleStatusUpdate(deposit._id, 'deposits', 'rejected')} 
+                                        disabled={actionLoading !== null}
+                                        className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-semibold text-[14px] py-3 rounded-xl transition-all flex items-center justify-center gap-1.5"
+                                    >
+                                        {actionLoading === `${deposit._id}-rejected` ? (
+                                            <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                <span>Reject</span>
+                                            </>
+                                        )}
+                                    </button>
                                 </>
                             )}
-                            <button onClick={() => setDeleteConfirm({ id: deposit._id, type: 'deposits' })} title="Delete" className={`${deposit.status === 'pending' ? 'w-12' : 'w-full'} flex items-center justify-center gap-2 bg-[#f5f5f7] hover:bg-red-50 text-[#86868b] hover:text-red-600 border border-[#e6e6eb] hover:border-red-200 font-medium text-[14px] py-3 rounded-xl transition-colors`}>
+                            <button 
+                                onClick={() => setDeleteConfirm({ id: deposit._id, type: 'deposits' })} 
+                                title="Delete" 
+                                className={`${deposit.status === 'pending' ? 'w-12' : 'w-full'} flex items-center justify-center gap-2 bg-[#f5f5f7] hover:bg-red-50 text-[#86868b] hover:text-red-600 border border-[#e6e6eb] hover:border-red-200 font-medium text-[14px] py-3 rounded-xl transition-colors`}
+                            >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" /></svg>
                                 {deposit.status !== 'pending' && <span>Delete</span>}
                             </button>

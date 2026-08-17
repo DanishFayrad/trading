@@ -51,34 +51,73 @@ function DepositContent() {
     setLoading(true);
 
     try {
-      // Get current logged-in Supabase user
+      // Get current logged-in user information
       const { data: authData } = await supabase.auth.getUser();
       const user = authData?.user;
       
+      let userEmail = user?.email || '';
+      let userName = (user?.user_metadata?.full_name || user?.user_metadata?.first_name || '');
+      let userPhone = user?.user_metadata?.phone || '';
+
+      if (!userEmail || !userName) {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+          if (!userEmail && storedUser.email) userEmail = storedUser.email;
+          if (!userName && storedUser.firstName) {
+            userName = `${storedUser.firstName} ${storedUser.lastName || ''}`.trim();
+          }
+          if (!userPhone && storedUser.phone) userPhone = storedUser.phone;
+        } catch (_) {}
+      }
+
       const screenshotBase64 = await convertFileToBase64(screenshot);
 
-      const { error } = await supabase.from('deposits').insert([
-        {
-          user_id: user?.id || null,
-          amount: Number(amount),
-          payment_method: selectedMethod,
-          transaction_id: transactionId || null,
-          plan_name: planName,
-          screenshot: screenshotBase64,
-          status: 'pending',
-        }
-      ]);
+      const depositPayload: Record<string, any> = {
+        user_id: user?.id || null,
+        amount: Number(amount),
+        payment_method: selectedMethod,
+        transaction_id: transactionId || null,
+        plan_name: planName,
+        screenshot: screenshotBase64,
+        status: 'pending',
+      };
+
+      // Include user contact details if available
+      if (userEmail) depositPayload.user_email = userEmail;
+      if (userName) depositPayload.user_name = userName;
+      if (userPhone) depositPayload.user_phone = userPhone;
+
+      const { error } = await supabase.from('deposits').insert([depositPayload]);
 
       if (error) {
-        console.error('Supabase deposit error:', error);
-        showToast(error.message || 'Submission failed. Please check Supabase table.', 'error');
-      } else {
-        showToast('Deposit submitted successfully!', 'success');
-        setSelectedMethod(null);
-        setAmount('');
-        setScreenshot(null);
-        setTransactionId('');
+        // Fallback without extra columns if they don't exist yet in Supabase schema
+        if (error.message?.includes('user_email') || error.message?.includes('column')) {
+          const { error: fallbackError } = await supabase.from('deposits').insert([{
+            user_id: user?.id || userEmail || null,
+            amount: Number(amount),
+            payment_method: selectedMethod,
+            transaction_id: transactionId || null,
+            plan_name: `${planName} (${userName || userEmail || 'User'})`,
+            screenshot: screenshotBase64,
+            status: 'pending',
+          }]);
+          if (fallbackError) {
+            console.error('Supabase deposit error:', fallbackError);
+            showToast(fallbackError.message || 'Submission failed. Please check Supabase table.', 'error');
+            return;
+          }
+        } else {
+          console.error('Supabase deposit error:', error);
+          showToast(error.message || 'Submission failed. Please check Supabase table.', 'error');
+          return;
+        }
       }
+
+      showToast('Deposit submitted successfully!', 'success');
+      setSelectedMethod(null);
+      setAmount('');
+      setScreenshot(null);
+      setTransactionId('');
     } catch (error: unknown) {
       console.error(error);
       const msg = error instanceof Error ? error.message : 'An error occurred during deposit.';
