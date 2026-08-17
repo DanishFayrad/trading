@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      if (user.role === 'admin') setIsAdmin(true);
+      if (user.role === 'admin' || user.email === 'admin60@primeinvestpro.com') setIsAdmin(true);
     }
   }, []);
 

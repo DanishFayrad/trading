@@ -114,7 +114,7 @@ export default function DashboardPage() {
     const userObj = JSON.parse(userStr);
     setUser(userObj);
 
-    if (userObj.role === 'admin' || userObj.email === 'admin@primeinvestpro.com') {
+    if (userObj.role === 'admin' || userObj.email === 'admin60@primeinvestpro.com') {
       setIsAdmin(true);
       fetchAdminStats();
       return;
