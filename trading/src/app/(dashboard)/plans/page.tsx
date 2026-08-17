@@ -1,10 +1,31 @@
 "use client";
-import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { plans, planReturns, PKR_PER_USD } from '@/data/plans';
+import PuzzleModal from '@/components/PuzzleModal';
 
 export default function PlansPage() {
+  const router = useRouter();
+  const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
+
+  const handlePuzzleSuccess = () => {
+    if (selectedPlan) {
+      router.push(`/deposit?amount=${selectedPlan.price}&plan=${encodeURIComponent(selectedPlan.name)}`);
+      setSelectedPlan(null);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20 relative overflow-hidden">
+      {selectedPlan && (
+        <PuzzleModal
+          planName={selectedPlan.name}
+          price={selectedPlan.price}
+          onSuccess={handlePuzzleSuccess}
+          onClose={() => setSelectedPlan(null)}
+        />
+      )}
+
       {/* Decorative Blobs */}
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#5b5bd6]/10 blob pointer-events-none -z-10"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#7c5cdb]/8 blob pointer-events-none -z-10"></div>
@@ -52,13 +73,14 @@ export default function PlansPage() {
                                 <p className={`text-[22px] font-semibold font-mono ${featured ? 'text-white' : 'text-[#1d1d1f]'}`}>Rs {plan.price.toLocaleString()}</p>
                                 <p className={`text-[12px] font-mono ${featured ? 'text-white/70' : 'text-[#86868b]'}`}>${(plan.price / PKR_PER_USD).toFixed(2)}</p>
                             </div>
-                            <Link
-                                href={`/deposit?amount=${plan.price}&plan=${encodeURIComponent(plan.name)}`}
-                                className={`px-8 py-3.5 font-medium rounded-xl transition-all duration-300 flex items-center gap-3 group/btn ${featured ? 'bg-white text-[#5b5bd6] hover:bg-white/90' : 'btn-primary'}`}
+                            <button
+                                type="button"
+                                onClick={() => setSelectedPlan(plan)}
+                                className={`px-8 py-3.5 font-medium rounded-xl transition-all duration-300 flex items-center gap-3 group/btn cursor-pointer ${featured ? 'bg-white text-[#5b5bd6] hover:bg-white/90 shadow-md' : 'btn-primary'}`}
                             >
                                 Deploy
                                 <svg className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                            </Link>
+                            </button>
                         </div>
                     </div>
 
